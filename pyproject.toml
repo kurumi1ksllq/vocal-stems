@@ -4,7 +4,7 @@ description = "Training and inference code for music source separation experimen
 readme = "README.md"
 requires-python = ">=3.10"
 license = "LicenseRef-PolyForm-Strict-1.0.0"
-license-files = ["LICENSE", "LICENSE-MIT"]
+license-files = ["LICENSE", "LICENSES/MIT.txt"]
 authors = [
   { name = "Roman Solovyev (ZFTurbo)" },
   { name = "kurumi1ksllq" },

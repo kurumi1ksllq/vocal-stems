@@ -199,7 +199,7 @@ python svc_dereverb.py 整曲.wav  --from-karaoke   # 去伴奏 -> 去和声 -> 
 | 范围 | 协议 |
 |---|---|
 | `svc_stems.py` / `svc_karaoke.py` / `svc_dereverb.py` / `svc_common.py`<br/>四个 `svc_*` 拖拽 bat / 新增的 gabox karaoke config<br/>本 README 的「本地改造说明」章节 | **PolyForm Strict 1.0.0** (见 `LICENSE`) |
-| `configs/` `models/*.py` `utils/` `gui/` `docs/` `scripts/` `tests/`<br/>`train*.py` `valid*.py` `inference.py` `ensemble.py` | **MIT** (见 `LICENSE-MIT`) |
+| `configs/` `models/*.py` `utils/` `gui/` `docs/` `scripts/` `tests/`<br/>`train*.py` `valid*.py` `inference.py` `ensemble.py` | **MIT** (见 `LICENSES/MIT.txt`) |
 
 ### PolyForm Strict 1.0.0 意味着什么
 
