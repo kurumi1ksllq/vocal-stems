@@ -189,3 +189,37 @@ python svc_dereverb.py 整曲.wav  --from-karaoke   # 去伴奏 -> 去和声 -> 
 - [anvuew](https://huggingface.co/anvuew) 系列
 
 本机当前用到的 5 个权重(全部 `_fp16.ckpt` 后缀)见 `svc_stems.py` / `svc_karaoke.py` / `svc_dereverb.py` 的 STEPS 定义。
+
+---
+
+## 许可证 (License)
+
+本仓库采用**双许可**:
+
+| 范围 | 协议 |
+|---|---|
+| `svc_stems.py` / `svc_karaoke.py` / `svc_dereverb.py` / `svc_common.py`<br/>四个 `svc_*` 拖拽 bat / 新增的 gabox karaoke config<br/>本 README 的「本地改造说明」章节 | **PolyForm Strict 1.0.0** (见 `LICENSE`) |
+| `configs/` `models/*.py` `utils/` `gui/` `docs/` `scripts/` `tests/`<br/>`train*.py` `valid*.py` `inference.py` `ensemble.py` | **MIT** (见 `LICENSE-MIT`) |
+
+### PolyForm Strict 1.0.0 意味着什么
+
+允许:**阅读源码、个人研究、实验、测试、个人学习、私人娱乐、业余项目、宗教活动**。
+
+禁止:**分发本软件、修改本软件、基于本软件创作新作品、任何商业用途**。
+
+也就是说 —— 你可以看、可以自己跑着玩,但不能拿去改、不能二次分发、不能商用。
+
+### 为什么是双许可
+
+`inference.py`、`ensemble.py` 以及 `configs/`、`models/`、`utils/` 等 169 个文件派生自
+[ZFTurbo/Music-Source-Separation-Training](https://github.com/ZFTurbo/Music-Source-Separation-Training)
+(MIT）。MIT 授权**不可撤销**——任何人拿到这些内容时就已经永久取得了使用/修改/分发的权利,
+不存在把它们改成更严格协议的可能。所以这部分只能继续按 MIT 提供。
+
+PolyForm Strict 只覆盖由本项目作者原创的 9 个文件。
+
+### 上游致谢
+
+- [ZFTurbo/Music-Source-Separation-Training](https://github.com/ZFTurbo/Music-Source-Separation-Training) — 训练/推理框架 (MIT)
+- [lucidrains/BS-RoFormer](https://github.com/lucidrains/BS-RoFormer) — RoFormer 架构
+- 模型权重作者: KimberleyJensen / anvuew / aufr33 / viperx / gabox 等

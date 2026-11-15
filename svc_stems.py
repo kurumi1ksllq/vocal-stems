@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+# Copyright (c) 2026 kurumi1ksllq
+# PolyForm Strict 1.0.0: 允许阅读与个人非商业实验, 禁止分发/修改/商用。
+# 完整条款见仓库根目录 LICENSE。本文件为原创, 不受上游 MIT 约束。
+
 """
 svc_stems.py — ① 去伴奏(vocals / instrumental 分离)
 
