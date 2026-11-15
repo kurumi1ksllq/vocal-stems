@@ -1,0 +1,17 @@
+# 默认不做换行转换, 按仓库内容原样保存
+* -text
+
+# 文本文件统一 LF(除了 .bat 必须 CRLF, 否则 cmd.exe 解析出错)
+*.py    text eol=lf
+*.md    text eol=lf
+*.yaml  text eol=lf
+*.yml   text eol=lf
+*.toml  text eol=lf
+*.txt   text eol=lf
+*.sh    text eol=lf
+.gitignore    text eol=lf
+.gitattributes text eol=lf
+
+# Windows 批处理必须是 CRLF + GBK/cmd 兼容
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
