@@ -24,13 +24,46 @@ import tempfile
 import datetime
 
 # ---------------- 路径 / 全局参数 ----------------
+# 打包成桌面应用后,资源散落在不同目录,所以每个路径都可以用环境变量覆盖。
+# 默认值保持原来的「全部相对本文件」行为,命令行用法完全不受影响。
 MSST = os.path.dirname(os.path.abspath(__file__))
-PY = os.path.join(MSST, ".venv", "Scripts", "python.exe")
-INF = os.path.join(MSST, "inference.py")
-ENS = os.path.join(MSST, "ensemble.py")
-MODELS = os.path.join(MSST, "models")
-FFMPEG = r"C:\Users\admin\ffmpeg\ffmpeg-master-latest-win64-gpl\bin\ffmpeg.exe"
-OUT_ROOT = os.path.join(MSST, "分离输出")
+
+
+def _env_path(name, default):
+    v = os.environ.get(name)
+    return os.path.abspath(v) if v else default
+
+
+def _default_python():
+    """默认解释器:优先仓库里的 .venv,其次当前解释器。
+
+    打包后 layout 是 <runtime>/python/python.exe + <runtime>/svc_*.py,
+    没有 .venv,这时应直接用正在跑自己的 sys.executable,
+    而不是拼一个不存在的路径 —— 否则 inference.py 起不来,
+    报的却是难以理解的 WinError 2。
+    """
+    venv = os.path.join(MSST, ".venv", "Scripts", "python.exe")
+    if os.path.exists(venv):
+        return venv
+    return sys.executable
+
+
+PY = _env_path("VS_PYTHON", _default_python())
+
+# 兜底:显式指定了解释器但文件不在(比如打包后 VS_PYTHON 写错),
+# 直接用当前解释器,而不是让子进程启动失败。
+if not os.path.exists(PY):
+    PY = sys.executable
+INF = _env_path("VS_INFERENCE", os.path.join(MSST, "inference.py"))
+ENS = _env_path("VS_ENSEMBLE", os.path.join(MSST, "ensemble.py"))
+MODELS = _env_path("VS_MODELS", os.path.join(MSST, "models"))
+FFMPEG = os.environ.get("VS_FFMPEG") or \
+    r"C:\Users\admin\ffmpeg\ffmpeg-master-latest-win64-gpl\bin\ffmpeg.exe"
+OUT_ROOT = _env_path("VS_OUT", os.path.join(MSST, "分离输出"))
+
+# CPU 回退:桌面版检测到没有可用 CUDA 时,会通过这个变量让所有推理走 CPU
+FORCE_CPU = os.environ.get("VS_FORCE_CPU", "").strip() in ("1", "true", "yes")
+
 
 BIGSHIFTS = 1          # 循环平移平均次数(1=最快,2=略好但耗时×2)
 PARALLEL = 2           # 同时跑的分离进程数(8GB 显存实测单模型 <1GB,并行 2 稳妥)
@@ -123,7 +156,7 @@ def to_mp3(src, dst):
 
 # ---------------- 推理 ----------------
 def _inf_cmd(step, input_path, store_dir):
-    return [PY, "-u", INF,
+    cmd = [PY, "-u", INF,
             "--model_type", step["model_type"],
             "--config_path", os.path.join(MODELS, step["cfg"]),
             "--start_check_point", os.path.join(MODELS, step["ckpt"]),
@@ -131,6 +164,10 @@ def _inf_cmd(step, input_path, store_dir):
             "--store_dir", store_dir,
             "--extract_instrumental",
             "--bigshifts", str(BIGSHIFTS)]
+    # 没有可用 GPU 时强制走 CPU,避免 inference.py 在 CUDA 初始化上卡住或崩溃
+    if FORCE_CPU:
+        cmd.append("--force_cpu")
+    return cmd
 
 
 def find_stems(store_dir):

@@ -1,7 +1,9 @@
 @echo off
+chcp 936 >nul
 setlocal
-set PYTHONPATH=
-cd /d E:\AI\vocal-stems
+set "ROOT=%~dp0"
+set "PYTHONPATH="
+cd /d "%~dp0"
 
 if "%~1"=="" (
     echo.
@@ -13,17 +15,17 @@ if "%~1"=="" (
 )
 
 set "INPUT=%~1"
-set "OUTDIR=E:\AI\vocal-stems\分离输出"
+set "OUTDIR=%ROOT%分离输出"
 
 echo ========================================
-echo   MelBand Roformer 干声分离
+echo   MelBand Roformer 干声分离(单模型快速版)
 echo   模型: KimberleyJensen 版 (SDR 10.98)
 echo   输入: %INPUT%
 echo   输出: %OUTDIR%
 echo ========================================
 echo.
 
-.venv\Scripts\python.exe inference.py --model_type mel_band_roformer --config_path models\config_melband_kj.yaml --start_check_point models\model_melband_kj.ckpt --input_folder "%INPUT%" --store_dir "%OUTDIR%" --extract_instrumental
+"%ROOT%.venv\Scripts\python.exe" -u "%ROOT%inference.py" --model_type mel_band_roformer --config_path "%ROOT%models\config_melband_kj.yaml" --start_check_point "%ROOT%models\model_melband_kj_fp16.ckpt" --input_folder "%INPUT%" --store_dir "%OUTDIR%" --extract_instrumental
 
 echo.
 echo   完成!结果在: %OUTDIR%

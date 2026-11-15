@@ -1,6 +1,9 @@
 @echo off
+chcp 936 >nul
 setlocal
 title SVC 去混响 - de-reverb
+set "ROOT=%~dp0"
+set "PYTHONPATH="
 echo ============================================
 echo   去混响: anvuew BS-RoFormer dereverb
 echo   输出 干声 + 混响成分
@@ -11,7 +14,11 @@ if "%~1"=="" (
     pause
     exit /b
 )
-set "PYTHONPATH="
-"E:\AI\vocal-stems\.venv\Scripts\python.exe" -u "E:\AI\vocal-stems\svc_dereverb.py" "%~1"
+if not exist "%ROOT%.venv\Scripts\python.exe" (
+    echo 找不到 %ROOT%.venv\Scripts\python.exe
+    pause
+    exit /b 1
+)
+"%ROOT%.venv\Scripts\python.exe" -u "%ROOT%svc_dereverb.py" "%~1"
 echo.
 pause

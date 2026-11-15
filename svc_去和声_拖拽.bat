@@ -1,6 +1,9 @@
 @echo off
+chcp 936 >nul
 setlocal
 title SVC 去和声 - 纯主唱 / 和声
+set "ROOT=%~dp0"
+set "PYTHONPATH="
 echo ============================================
 echo   去和声: 2 个模型从人声(含和声)中分出纯主唱
 echo   1. anvuew  (BS-RoFormer)
@@ -16,7 +19,11 @@ if "%~1"=="" (
     pause
     exit /b
 )
-set "PYTHONPATH="
-"E:\AI\vocal-stems\.venv\Scripts\python.exe" -u "E:\AI\vocal-stems\svc_karaoke.py" "%~1"
+if not exist "%ROOT%.venv\Scripts\python.exe" (
+    echo 找不到 %ROOT%.venv\Scripts\python.exe
+    pause
+    exit /b 1
+)
+"%ROOT%.venv\Scripts\python.exe" -u "%ROOT%svc_karaoke.py" "%~1"
 echo.
 pause

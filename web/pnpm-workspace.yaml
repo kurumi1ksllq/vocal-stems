@@ -1,0 +1,16 @@
+# pnpm v11 配置。注意：v11 不再读 package.json 的 "pnpm" 字段，
+# 也不再支持 onlyBuiltDependencies / neverBuiltDependencies 等旧键，
+# 统一用 allowBuilds 映射 {包名: true|false}。
+#
+# 这三个包的安装脚本是必需的：
+#   esbuild            vite 的构建引擎，postinstall 装平台二进制
+#   electron           postinstall 下载 Electron 运行时（~200MB）
+#   electron-winstaller electron-builder 打 Windows 安装包时用
+# 缺一个就会在 pnpm 每次执行命令时报 ERR_PNPM_IGNORED_BUILDS。
+packages:
+  - "."
+
+allowBuilds:
+  esbuild: true
+  electron: true
+  electron-winstaller: true

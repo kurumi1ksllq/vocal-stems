@@ -158,6 +158,32 @@ python svc_dereverb.py 整曲.wav  --from-vocals    # 去伴奏 -> 去混响
 python svc_dereverb.py 整曲.wav  --from-karaoke   # 去伴奏 -> 去和声 -> 去混响
 ```
 
+### Web 前端 (干声分离台)
+
+[`web/`](web/) 是给三件套做的 React 界面:拖入音频、选模式、实时看日志、直接试听对比产物。
+推理仍走上面三个脚本,前端只是个壳。
+
+```bash
+# 首次
+uv pip install --python .venv\Scripts\python.exe fastapi "uvicorn[standard]" python-multipart
+cd web && pnpm install && pnpm build && pnpm server
+
+# 日常(开发模式,前端热更新)
+cd web && pnpm server      # 终端 1: 后端 :8765
+cd web && pnpm dev         # 终端 2: 前端 :5178
+```
+
+生产模式下后端顺带托管 `dist/`,访问 <http://127.0.0.1:8765> 即可。
+细节见 [`web/README.md`](web/README.md)。
+
+也可以打包成桌面应用(双击即用,内置 Python 运行时与权重):
+
+```bash
+cd web && pnpm dist    # -> release/干声分离台-<version>-x64.zip
+```
+
+详见 [`web/ELECTRON.md`](web/ELECTRON.md)。
+
 ### 融合算法
 
 原 `ensemble.py` 直接对复数做 median/mean。`np.median` 作用在复数上按**实部**排序而非模,

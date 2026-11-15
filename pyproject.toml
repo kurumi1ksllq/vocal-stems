@@ -16,7 +16,7 @@ dependencies = [
   "librosa",
   "matplotlib",
   "ml-collections",
-  "numpy>=2.0.0",
+  "numpy>=1.24",
   "omegaconf",
   "pandas",
   "requests",

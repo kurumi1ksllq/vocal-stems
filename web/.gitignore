@@ -1,0 +1,25 @@
+node_modules/
+dist/
+dist-ssr/
+*.local
+.vite/
+uploads/
+__pycache__/
+*.py[cod]
+server/jobs.json
+*.log
+.DS_Store
+
+# TypeScript 增量构建信息
+*.tsbuildinfo
+
+# 桌面打包产物：runtime 约 6.6 GB，绝不能进仓库
+build/runtime/
+release/
+
+# 仓库根 .gitignore 里有 Python 打包用的 `lib/` 和 `Scripts/` 规则，
+# 会误伤前端的 src/lib/ 和 scripts/。这里显式收回。
+!src/lib/
+!src/lib/**
+!scripts/
+!scripts/**
