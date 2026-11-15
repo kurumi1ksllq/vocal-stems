@@ -17,6 +17,6 @@ if "%~1"=="" (
     exit /b
 )
 set "PYTHONPATH="
-"E:\AI\msst_zfturbo\.venv\Scripts\python.exe" -u "E:\AI\msst_zfturbo\svc_karaoke.py" "%~1"
+"E:\AI\vocal-stems\.venv\Scripts\python.exe" -u "E:\AI\vocal-stems\svc_karaoke.py" "%~1"
 echo.
 pause

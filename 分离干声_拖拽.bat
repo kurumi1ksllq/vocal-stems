@@ -1,7 +1,7 @@
 @echo off
 setlocal
 set PYTHONPATH=
-cd /d E:\AI\msst_zfturbo
+cd /d E:\AI\vocal-stems
 
 if "%~1"=="" (
     echo.
@@ -13,7 +13,7 @@ if "%~1"=="" (
 )
 
 set "INPUT=%~1"
-set "OUTDIR=E:\AI\msst_zfturbo\分离输出"
+set "OUTDIR=E:\AI\vocal-stems\分离输出"
 
 echo ========================================
 echo   MelBand Roformer 干声分离
