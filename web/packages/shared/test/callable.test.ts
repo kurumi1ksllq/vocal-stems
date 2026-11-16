@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
 /**
  * Hono 路由测试：直接 app.request()，不需要 Electron 也不需要数据库。
  *

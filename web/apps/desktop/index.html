@@ -1,11 +1,16 @@
+<!-- SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0 -->
 <!doctype html>
 <html lang="zh-CN" class="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--
+      connect-src 必须带 vs-media: —— 波形是靠 fetch() 把音频拉回来解 codec 的，
+      只写 'self' 会让 <audio> 能播但波形永远画不出来（media-src 管不到 fetch）。
+    -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: vs-media:; media-src 'self' blob: vs-media:; connect-src 'self'"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: vs-media:; media-src 'self' blob: vs-media:; connect-src 'self' vs-media:"
     />
     <title>干声分离台</title>
   </head>

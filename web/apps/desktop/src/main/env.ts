@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
 /**
  * 主进程环境变量。用 envtrue 的 createEnv + Zod schema。
  *

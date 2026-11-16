@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
 /**
  * 完整回路 E2E：上传 → 建任务 → 等完成 → 读产物。
  *

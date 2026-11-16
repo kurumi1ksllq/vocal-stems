@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
 import torch
 from torch.nn.modules.loss import _Loss
 from torch.nn import functional as F

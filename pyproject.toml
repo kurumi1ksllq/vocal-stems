@@ -1,10 +1,11 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
 [project]
 name = "music-source-separation-training"
 description = "Training and inference code for music source separation experiments."
 readme = "README.md"
 requires-python = ">=3.10"
 license = "LicenseRef-PolyForm-Strict-1.0.0"
-license-files = ["LICENSE", "LICENSES/MIT.txt"]
+license-files = ["LICENSE"]
 authors = [
   { name = "Roman Solovyev (ZFTurbo)" },
   { name = "kurumi1ksllq" },

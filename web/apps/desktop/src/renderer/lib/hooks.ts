@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
 import { api, type Health, type Job, type LibraryEntry, type WeightEntry } from '@renderer/lib/api'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
@@ -42,9 +43,11 @@ export function useJobs(pollMs = 2000) {
   const refresh = useCallback(async () => {
     try {
       const list = await api.jobs()
-      setJobs(list)
+      // 主进程返回异常结构时别让整页崩在 jobs.filter 上
+      const safe = Array.isArray(list) ? list : []
+      setJobs(safe)
       setError(null)
-      return list
+      return safe
     } catch (e) {
       setError(e instanceof Error ? e.message : '任务列表获取失败')
       return []
@@ -78,10 +81,13 @@ export function useLibrary() {
   const refresh = useCallback(async () => {
     setLoading(true)
     try {
-      setEntries(await api.library())
+      const list = await api.library()
+      // 主进程返回异常结构时别让整页崩在 entries.slice 上
+      setEntries(Array.isArray(list) ? list : [])
       setError(null)
     } catch (e) {
       setError(e instanceof Error ? e.message : '读取历史失败')
+      setEntries([])
     } finally {
       setLoading(false)
     }

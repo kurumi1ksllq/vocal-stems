@@ -1,5 +1,5 @@
+// SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
 import { Waveform } from '@renderer/components/waveform'
-import { Button } from '@vs/ui/components/button'
 import { formatDuration } from '@vs/ui/lib/utils'
 import { Pause, Play } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
@@ -16,6 +16,9 @@ interface StemPlayerProps {
 /**
  * 单轨播放器（受控）。
  * 只有 playingUrl === url 时才出声，其余轨自动暂停并保留进度。
+ *
+ * 布局按 iOS 的音乐播放行排：圆形播放键最左，波形吃满中间，时间码贴右。
+ * 播放键在播放中变成轨道色，是这一行唯一会变色的地方。
  */
 export function StemPlayer({ url, label, color, playingUrl, onPlayUrl }: StemPlayerProps) {
   const ref = useRef<HTMLAudioElement | null>(null)
@@ -58,7 +61,7 @@ export function StemPlayer({ url, label, color, playingUrl, onPlayUrl }: StemPla
   }
 
   return (
-    <div className="rounded-lg border border-border/60 bg-background/40 p-3 transition-colors hover:border-border/90">
+    <div>
       {/* 这是纯音频播放，没有画面，不需要字幕轨 */}
       {/* biome-ignore lint/a11y/useMediaCaption: 干声分离产物没有可配的语音轨字幕 */}
       <audio
@@ -76,34 +79,34 @@ export function StemPlayer({ url, label, color, playingUrl, onPlayUrl }: StemPla
         className="hidden"
       />
 
-      <div className="flex items-center gap-3">
-        <Button
-          size="icon-sm"
-          variant={mine ? 'default' : 'secondary'}
+      <div className="flex items-center gap-2.5">
+        <button
+          type="button"
           onClick={() => void toggle()}
           aria-label={mine ? `暂停 ${label}` : `播放 ${label}`}
-          className="shrink-0"
+          className="pressable flex size-8 shrink-0 items-center justify-center rounded-full bg-white/12 transition-colors hover:bg-white/18"
+          style={mine ? { background: color, color: '#0b0c12' } : undefined}
         >
           {mine ? <Pause className="size-3.5" /> : <Play className="size-3.5" />}
-        </Button>
+        </button>
 
-        <div className="min-w-0 flex-1">
+        <div className="well min-w-0 flex-1 rounded-[10px] px-2 py-1">
           <Waveform
             url={url}
             progress={progress}
             color={color}
-            height={40}
-            bins={120}
+            height={28}
+            bins={140}
             onSeek={seek}
           />
         </div>
 
-        <span className="text-muted-foreground w-24 shrink-0 text-right font-mono text-[11px] tabular-nums">
+        <span className="readout text-muted-foreground shrink-0 tabular-nums">
           {formatDuration(current)} / {formatDuration(duration)}
         </span>
       </div>
 
-      {error && <p className="mt-1.5 text-[11px] text-destructive">{error}</p>}
+      {error && <p className="text-destructive mt-1.5 text-caption2">{error}</p>}
     </div>
   )
 }

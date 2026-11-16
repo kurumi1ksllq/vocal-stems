@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
 /**
  * 主进程入口。
  *
@@ -162,6 +163,14 @@ async function bootstrap(): Promise<void> {
   })
   killAllJobs = () => (runner as unknown as { killAll: () => Promise<void> }).killAll()
 
+  // 收拾上一次异常退出的遗留任务：数据库里的 queued/running 已经没有对应进程，
+  // 不处理就会永远显示「处理中」并把「当前任务」永久占住。
+  try {
+    await (runner as unknown as { reapStale: () => Promise<number> }).reapStale()
+  } catch (err) {
+    mainLog().error('[reap] failed', err)
+  }
+
   // 3. Hono 路由 + IPC 桥
   const api = createApp({
     db: handle.db,
@@ -261,7 +270,7 @@ function createWindow(): void {
     height: 940,
     minWidth: 1080,
     minHeight: 720,
-    backgroundColor: '#0a0c10',
+    backgroundColor: '#05060b',
     title: '干声分离台',
     show: false,
     autoHideMenuBar: true,

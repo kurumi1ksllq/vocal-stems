@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
 const zhCNShape = {
   app: {
     title: '干声分离台',
@@ -122,7 +123,7 @@ const zhCNShape = {
     pipeline: '流水线',
     design: '设计取舍',
     stack: '技术栈',
-    license: '原创部分 PolyForm Strict 1.0.0 · 上游派生部分 MIT',
+    license: '全仓库 PolyForm Strict 1.0.0 · 上游 MIT 代码仅作第三方归属',
   },
   toast: {
     queued: '已加入队列：{{mode}}',

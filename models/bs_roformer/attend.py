@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
 from functools import wraps
 from packaging import version
 from collections import namedtuple

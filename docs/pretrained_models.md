@@ -1,3 +1,4 @@
+<!-- SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0 -->
 ## Pre-trained models 
 
 If you trained some good models, please, share them. You can post config and model weights [in this issue](https://github.com/ZFTurbo/Music-Source-Separation-Training/issues/1).

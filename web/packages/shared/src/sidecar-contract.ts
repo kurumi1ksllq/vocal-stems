@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
 /**
  * 主进程给 Hono 路由注入的 sidecar 接口。
  *

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
 if __name__ == '__main__':
     import os
 

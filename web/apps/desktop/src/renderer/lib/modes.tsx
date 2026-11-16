@@ -1,5 +1,5 @@
+// SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
 import type { Job, ModeKey, SourceKey } from '@renderer/lib/api'
-import { Badge } from '@vs/ui/components/badge'
 import { cn } from '@vs/ui/lib/utils'
 
 export const MODE_META: Record<
@@ -9,19 +9,19 @@ export const MODE_META: Record<
   stems: {
     label: '去伴奏',
     desc: '整曲进来，人声（含和声）和伴奏分家',
-    outputs: '人声（含和声） · 伴奏',
+    outputs: '人声 + 伴奏',
     accent: 'text-stem-vocal',
   },
   karaoke: {
     label: '去和声',
     desc: '从人声轨里再拆出纯主唱与和声',
-    outputs: '纯主唱 · 和声',
+    outputs: '主唱 + 和声',
     accent: 'text-stem-backing',
   },
   dereverb: {
     label: '去混响',
     desc: '把混响尾巴从人声里剥出来',
-    outputs: '干声 · 混响成分',
+    outputs: '干声 + 混响',
     accent: 'text-stem-inst',
   },
 }
@@ -43,21 +43,24 @@ export function sourceOptions(mode: ModeKey): { key: SourceKey; cascade?: string
   ]
 }
 
+const STATUS: Record<Job['status'], { text: string; cls: string; dot: string }> = {
+  queued: { text: '排队中', cls: 'text-muted-foreground', dot: 'bg-muted-foreground/50' },
+  running: { text: '处理中', cls: 'text-signal', dot: 'bg-signal' },
+  done: { text: '已完成', cls: 'text-[#30d158]', dot: 'bg-[#30d158]' },
+  failed: { text: '失败', cls: 'text-destructive', dot: 'bg-destructive' },
+  cancelled: { text: '已取消', cls: 'text-muted-foreground/70', dot: 'bg-muted-foreground/35' },
+  // 上次运行被中途掐断（关窗、崩溃、Ctrl+C）。和历史「已取消」分开：
+  // 这不是用户主动取消，而是没跑完。
+  interrupted: { text: '已中断', cls: 'text-signal/80', dot: 'bg-signal/60' },
+}
+
+/** 状态。iOS 里状态是「一个色点 + 一个词」，不做徽章框。 */
 export function StatusBadge({ job }: { job: Job }) {
-  const map = {
-    queued: { variant: 'outline' as const, text: '排队中' },
-    running: { variant: 'warning' as const, text: '处理中' },
-    done: { variant: 'success' as const, text: '已完成' },
-    failed: { variant: 'danger' as const, text: '失败' },
-    cancelled: { variant: 'secondary' as const, text: '已取消' },
-  }
-  const s = map[job.status]
+  const s = STATUS[job.status]
   return (
-    <Badge variant={s.variant} className={cn(job.status === 'running' && 'animate-pulse')}>
-      {job.status === 'running' && (
-        <span className="size-1.5 rounded-full bg-amber-400 animate-pulse-ring" />
-      )}
+    <span className={cn('inline-flex items-center gap-1.5 text-caption2', s.cls)}>
+      <span className={cn('size-1.5 rounded-full', s.dot)} aria-hidden />
       {s.text}
-    </Badge>
+    </span>
   )
 }

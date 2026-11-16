@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
 /**
  * 任务调度与产物扫描 —— SidecarApi 的主进程实现。
  *
@@ -24,7 +25,7 @@ import type {
   UploadedFile,
   WeightEntry,
 } from '@vs/shared/sidecar-contract'
-import { asc, desc, eq } from 'drizzle-orm'
+import { asc, desc, eq, inArray } from 'drizzle-orm'
 import { mainLog } from './logger.ts'
 import { probePython, type RunHandle, runPython } from './sidecar.ts'
 
@@ -570,6 +571,41 @@ export function createJobRunner(deps: JobRunnerDeps): SidecarApi {
     }
   }
 
+  /**
+   * 启动时收尸。
+   *
+   * `running` 这个 Map 活在内存里，进程一退就空。但数据库里的 queued/running
+   * 是持久化的，所以上一次异常退出（关窗口、Ctrl+C、崩溃）会留下永远停在
+   * 「处理中」的僵尸任务——界面上还按 running 显示，也会永远把「当前任务」
+   * 占住。启动时把这些行改成 interrupted，界面就不会再骗人。
+   */
+  async function reapStale(): Promise<number> {
+    const stale = q(() =>
+      db
+        .select({ id: jobs.id })
+        .from(jobs)
+        .where(inArray(jobs.status, ['queued', 'running']))
+        .all(),
+    )
+    if (stale.length === 0) return 0
+
+    const ids = stale.map((r) => r.id)
+    const now = Date.now()
+    q(() =>
+      db
+        .update(jobs)
+        .set({ status: 'interrupted', error: '应用退出时任务未结束', finishedAt: now })
+        .where(inArray(jobs.id, ids))
+        .run(),
+    )
+    for (const id of ids) {
+      deps.onState(id, 'interrupted')
+      running.delete(id)
+    }
+    mainLog().warn('[reap] 上次退出遗留的任务已标记为 interrupted', { count: ids.length, ids })
+    return ids.length
+  }
+
   return {
     probe,
     createJob,
@@ -585,8 +621,8 @@ export function createJobRunner(deps: JobRunnerDeps): SidecarApi {
     listWeights,
     reveal,
     // 内部用，不作为 RPC 暴露
-    ...({ killAll } as object),
-  } as SidecarApi & { killAll: () => Promise<void> }
+    ...({ killAll, reapStale } as object),
+  } as SidecarApi & { killAll: () => Promise<void>; reapStale: () => Promise<number> }
 }
 
 /** 与 media-protocol.ts 的 scheme 保持一致；这里只拼尾部。 */

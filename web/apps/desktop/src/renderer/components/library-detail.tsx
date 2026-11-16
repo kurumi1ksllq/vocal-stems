@@ -1,6 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
 import { StemGrid } from '@renderer/components/stem-grid'
 import { api, type ResultDir } from '@renderer/lib/api'
-import { AlertCircle, Loader2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
 /** 历史产物的详情：直接把目录扫成可播放的轨。 */
@@ -31,32 +31,16 @@ export function LibraryDetail({ dir }: { dir: string }) {
       })
   }, [dir])
 
-  if (loading) {
-    return (
-      <div className="text-muted-foreground flex items-center gap-2 py-10 text-[12.5px]">
-        <Loader2 className="size-3.5 animate-spin" />
-        读取产物…
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="text-muted-foreground flex items-center gap-2 py-10 text-[12.5px]">
-        <AlertCircle className="size-3.5" />
-        {error}
-      </div>
-    )
-  }
-
+  if (loading) return <p className="text-muted-foreground px-1 py-4 text-caption">读取产物…</p>
+  if (error) return <p className="text-muted-foreground px-1 py-4 text-caption">{error}</p>
   if (!result) return null
 
   return (
-    <div className="space-y-3">
-      <div>
-        <p className="text-[13px] font-medium">{result.name}</p>
+    <div>
+      <div className="mb-3 px-1">
+        <p className="text-subhead leading-snug font-semibold">{result.name}</p>
         <p
-          className="text-muted-foreground mt-0.5 truncate font-mono text-[10.5px]"
+          className="text-muted-foreground/60 mt-0.5 truncate font-mono text-caption2"
           title={result.dir}
         >
           {result.dir}

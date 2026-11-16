@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
 import os
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional

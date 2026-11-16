@@ -1,3 +1,4 @@
+<!-- SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0 -->
 # Web 桌面版（React + Electron）
 
 干声分离三件套的桌面 UI。**推理全在 Python sidecar**，Electron 只做窗口与业务编排。

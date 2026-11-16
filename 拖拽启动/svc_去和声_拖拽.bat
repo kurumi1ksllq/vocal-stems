@@ -1,5 +1,6 @@
 @echo off
 chcp 936 >nul
+REM SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
 setlocal
 title SVC 去和声 - 纯主唱 / 和声
 set "ROOT=%~dp0..\"

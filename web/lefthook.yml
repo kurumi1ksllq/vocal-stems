@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
 # Lefthook —— 只针对 web/ 下的前端代码
 #
 # 提交前只跑 staged 文件的 biome 修复 + 类型检查（快，几秒）。

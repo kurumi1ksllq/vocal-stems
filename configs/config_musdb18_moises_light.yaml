@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
 # MoisesLight: lightweight music source separation
 # This config uses the paper_large preset (4.7M params, 0-14.7 kHz).
 # Other presets available via the moises-light package:

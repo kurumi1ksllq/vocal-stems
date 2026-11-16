@@ -1,3 +1,4 @@
+<!-- SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0 -->
 ## Mel Roformer models 
 
 All experiments were made using MUSDB18HQ dataset. All metrics were measured using 'test' set. Training was made using 'train' set.  

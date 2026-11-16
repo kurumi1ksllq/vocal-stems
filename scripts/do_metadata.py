@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
 from utils.dataset import prepare_data
 from utils.settings import get_model_from_config, parse_args_train
 

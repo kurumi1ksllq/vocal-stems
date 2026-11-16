@@ -1,3 +1,4 @@
+<!-- SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0 -->
 ## GUI for MSST code 
 
 GUI was prepared by **Bas Curtiz** and is based on [wxpython](https://en.wikipedia.org/wiki/WxPython) module.

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
 'use client'
 
 import * as SeparatorPrimitive from '@radix-ui/react-separator'

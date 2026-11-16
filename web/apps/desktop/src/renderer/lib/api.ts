@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
 /**
  * 渲染进程的项目 API 门面。
  *
@@ -11,7 +12,7 @@ import { rpc, api as rpcApi } from './rpc.ts'
 
 export type ModeKey = 'stems' | 'karaoke' | 'dereverb'
 export type SourceKey = 'mix' | 'vocals' | 'karaoke'
-export type JobStatus = 'queued' | 'running' | 'done' | 'failed' | 'cancelled'
+export type JobStatus = 'queued' | 'running' | 'done' | 'failed' | 'cancelled' | 'interrupted'
 
 /** 主进程返回的 JobView（字段名与 shared/sidecar-contract.ts 一致） */
 export interface Job {

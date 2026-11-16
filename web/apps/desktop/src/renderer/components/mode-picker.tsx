@@ -1,9 +1,16 @@
+// SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
 import type { ModeKey, SourceKey } from '@renderer/lib/api'
 import { MODE_META, SOURCE_META, sourceOptions } from '@renderer/lib/modes'
 import { cn } from '@vs/ui/lib/utils'
-import { ArrowRight, Info } from 'lucide-react'
 
 const ORDER: ModeKey[] = ['stems', 'karaoke', 'dereverb']
+
+/** 每一步产出的「主轨」颜色，用来给这一步做标记 */
+const STEP_COLOR: Record<ModeKey, string> = {
+  stems: 'var(--stem-vocal)',
+  karaoke: 'var(--stem-backing)',
+  dereverb: 'var(--stem-inst)',
+}
 
 interface ModePickerProps {
   mode: ModeKey
@@ -13,8 +20,13 @@ interface ModePickerProps {
 }
 
 /**
- * 模式选择：视觉上是一条「流水线」——伴奏 → 主唱 → 干声。
- * 选右侧模式时，如果输入还没到那一步，自动提示会先跑前置。
+ * 模式选择。
+ *
+ * 上半是 iOS 的分段控件（segmented control）：一个凹槽里三格，
+ * 选中那格是滑动的白色滑块——这是 iOS 最有辨识度的控件，也正好合适：
+ * 三选一、互斥、需要一眼看清当前值。
+ *
+ * 下半是输入的 pill 选择。「做什么」和「拿什么做」是两件事，不该混在一组里。
  */
 export function ModePicker({ mode, source, onChange, disabled }: ModePickerProps) {
   const options = sourceOptions(mode)
@@ -28,57 +40,47 @@ export function ModePicker({ mode, source, onChange, disabled }: ModePickerProps
   }
 
   return (
-    <div className="space-y-3">
-      <div className="grid grid-cols-3 gap-2">
-        {ORDER.map((m, i) => {
-          const meta = MODE_META[m]
-          const active = mode === m
-          return (
-            <button
-              key={m}
-              type="button"
-              disabled={disabled}
-              onClick={() => pick(m)}
-              className={cn(
-                'group relative flex flex-col items-start gap-1 rounded-lg border p-2.5 text-left transition-all disabled:opacity-50',
-                active
-                  ? 'border-primary/60 bg-primary/8'
-                  : 'border-border/60 bg-background/30 hover:border-border hover:bg-background/50',
-              )}
-            >
-              <div className="flex w-full items-center gap-1.5">
-                <span
-                  className={cn(
-                    'flex size-4 shrink-0 items-center justify-center rounded-full border text-[9px] font-semibold tabular-nums',
-                    active
-                      ? 'border-primary bg-primary text-primary-foreground'
-                      : 'border-border text-muted-foreground',
-                  )}
-                >
-                  {i + 1}
-                </span>
-                <span
-                  className={cn(
-                    'text-[13px] font-medium',
-                    active ? 'text-foreground' : 'text-foreground/80',
-                  )}
-                >
-                  {meta.label}
-                </span>
-                {i < ORDER.length - 1 && (
-                  <ArrowRight className="text-muted-foreground/40 ml-auto size-3" />
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <span className="text-muted-foreground px-1 text-caption2">做什么</span>
+
+        {/* 分段控件：凹槽 + 滑块 */}
+        <div className="well relative flex gap-1 rounded-[12px] p-1">
+          {ORDER.map((m) => {
+            const active = mode === m
+            return (
+              <button
+                key={m}
+                type="button"
+                aria-pressed={active}
+                disabled={disabled}
+                onClick={() => pick(m)}
+                className={cn(
+                  'pressable relative flex-1 rounded-[9px] px-2 py-2 text-center transition-colors',
+                  active
+                    ? 'bg-white/18 text-foreground shadow-[0_1px_2px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.14)]'
+                    : 'text-muted-foreground hover:text-foreground',
                 )}
-              </div>
-              <span className="text-muted-foreground line-clamp-2 text-[10.5px] leading-snug">
-                {meta.outputs}
-              </span>
-            </button>
-          )
-        })}
+              >
+                <span className="flex items-center justify-center gap-1.5">
+                  <span
+                    className="size-1.5 rounded-full transition-opacity"
+                    style={{ background: STEP_COLOR[m], opacity: active ? 1 : 0.5 }}
+                    aria-hidden
+                  />
+                  <span className="text-caption font-medium">{MODE_META[m].label}</span>
+                </span>
+                <span className="mt-0.5 block text-caption2 leading-tight opacity-70">
+                  {MODE_META[m].outputs}
+                </span>
+              </button>
+            )
+          })}
+        </div>
       </div>
 
-      <div className="space-y-1.5">
-        <p className="text-muted-foreground text-[11px]">{MODE_META[mode].desc}</p>
+      <div className="space-y-2">
+        <span className="text-muted-foreground px-1 text-caption2">拿什么当输入</span>
         <div className="flex flex-wrap gap-1.5">
           {options.map((o) => {
             const active = source === o.key
@@ -88,24 +90,23 @@ export function ModePicker({ mode, source, onChange, disabled }: ModePickerProps
                 type="button"
                 disabled={disabled}
                 onClick={() => onChange(mode, o.key)}
-                className={cn(
-                  'inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11.5px] transition-colors disabled:opacity-50',
-                  active
-                    ? 'border-primary/50 bg-primary/10 text-primary'
-                    : 'border-border/60 text-muted-foreground hover:border-border hover:text-foreground',
-                )}
                 title={SOURCE_META[o.key].hint}
+                className={cn(
+                  'pressable rounded-full px-3 py-1.5 text-caption transition-colors disabled:opacity-35',
+                  active
+                    ? 'bg-tint/20 text-tint'
+                    : 'bg-white/7 text-muted-foreground hover:bg-white/12 hover:text-foreground',
+                )}
               >
-                输入：{SOURCE_META[o.key].label}
-                {o.cascade && <span className="text-[10px] opacity-70">· {o.cascade}</span>}
+                {SOURCE_META[o.key].label}
+                {o.cascade && <span className="opacity-70"> · {o.cascade}</span>}
               </button>
             )
           })}
         </div>
         {options.length > 1 && (
-          <p className="text-muted-foreground/70 flex items-start gap-1 text-[10.5px] leading-snug">
-            <Info className="mt-0.5 size-3 shrink-0" />
-            选「整曲」会自动串联前置步骤，耗时叠加（去伴奏约 1.5 分钟/首）。
+          <p className="text-muted-foreground/70 px-1 text-caption2 leading-snug">
+            选「整曲」会先自动跑前置步骤，耗时叠加（去伴奏约 1.5 分钟一首）。
           </p>
         )}
       </div>
