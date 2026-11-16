@@ -65,12 +65,23 @@ ENS = _env_path("VS_ENSEMBLE", os.path.join(MSST, "ensemble.py"))
 MODELS = _env_path("VS_MODELS", os.path.join(MSST, "models"))
 OUT_ROOT = _env_path("VS_OUT", os.path.join(MSST, "分离输出"))
 
-# ffmpeg:环境变量 > 仓库内捆绑的 bin/ffmpeg.exe > 本机硬编码路径
-_bundled_ffmpeg = os.path.join(MSST, "bin", "ffmpeg.exe")
-FFMPEG = os.environ.get("VS_FFMPEG") or (
-    _bundled_ffmpeg if os.path.exists(_bundled_ffmpeg)
-    else r"C:\Users\admin\ffmpeg\ffmpeg-master-latest-win64-gpl\bin\ffmpeg.exe"
-)
+# ffmpeg:只认包内自带的那份。
+#
+# 以前这里还有"本机硬编码路径"兜底,那个兜底在开发机上永远命中,
+# 所以打包出去缺 ffmpeg 也发现不了;到了别人机器上要么报 WinError 2,
+# 要么用到 PATH 里版本不对的 ffmpeg,产出莫名其妙的音频。
+# 现在只认这两处(都不存在就在用到它时明确报错,不静默回退):
+#   <MSST>/bin/ffmpeg.exe          打包后: runtime/bin/ffmpeg.exe
+#   <MSST>/tools/ffmpeg/ffmpeg.exe 开发态: 仓库里提交的那份
+_FFMPEG_CANDIDATES = [
+    os.path.join(MSST, "bin", "ffmpeg.exe"),
+    os.path.join(MSST, "tools", "ffmpeg", "ffmpeg.exe"),
+]
+FFMPEG = os.environ.get("VS_FFMPEG") or _FFMPEG_CANDIDATES[0]
+for _cand in _FFMPEG_CANDIDATES:
+    if os.path.exists(_cand):
+        FFMPEG = os.environ.get("VS_FFMPEG") or _cand
+        break
 
 # CPU 回退:桌面版检测到没有可用 CUDA 时,会通过这个变量让所有推理走 CPU
 FORCE_CPU = os.environ.get("VS_FORCE_CPU", "").strip() in ("1", "true", "yes")
@@ -108,7 +119,19 @@ def say(msg):
 
 
 # ---------------- ffmpeg 工具 ----------------
+def require_ffmpeg():
+    """用到 ffmpeg 之前先确认它在。缺了就抛带路径的错,而不是 WinError 2。"""
+    if not os.path.exists(FFMPEG):
+        raise RuntimeError(
+            "找不到 ffmpeg：{}\n"
+            "这个文件应随安装包一起分发；若从 zip 解压，检查 "
+            "resources\\runtime\\bin\\ffmpeg.exe 是否被杀毒软件隔离。".format(FFMPEG)
+        )
+    return FFMPEG
+
+
 def _ff(args, timeout=None):
+    require_ffmpeg()
     return subprocess.run([FFMPEG] + args, capture_output=True, text=True,
                           encoding="utf-8", errors="replace", timeout=timeout)
 

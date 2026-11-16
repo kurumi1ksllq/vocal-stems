@@ -33,10 +33,23 @@ function resolveAppRoot(): string {
       path.resolve(__dirname, '..', '..', '..', '..', '..')
 }
 
-/** 可写的产物目录。装到 Program Files 时 resources 只读，所以放用户目录。 */
+/**
+ * 可写的产物目录：放在「包旁边」而不是系统文档目录。
+ *
+ * 打包后 exe 在 <安装目录>\干声分离台.exe，resources 在 <安装目录>\resources。
+ * 产物写到 <安装目录>\分离输出，也就是 resources 的同级目录——
+ * 整个应用自带输入输出，拷走目录就能搬。
+ *
+ * 开发态没有"安装目录"这个概念，退回仓库根的 分离输出/（和 CLI 三件套一致）。
+ */
 function resolveOutRoot(): string {
   if (env.VS_OUT) return path.resolve(env.VS_OUT)
-  return path.join(app.getPath('documents'), 'vocal-stems', '分离输出')
+  if (!app.isPackaged) {
+    // 开发态：apps/desktop/src/main -> 往上五层是仓库根
+    return path.resolve(__dirname, '..', '..', '..', '..', '..', '分离输出')
+  }
+  // 打包态：exe 所在目录（resources 的父目录）
+  return path.join(path.dirname(app.getPath('exe')), '分离输出')
 }
 
 function resolveUploadsDir(): string {
@@ -58,30 +71,19 @@ function resolvePython(appRoot: string): string {
   return found
 }
 
-function resolveFfmpeg(appRoot: string): string | null {
-  return firstExisting([
-    env.VS_FFMPEG,
-    // 打包后的运行时
-    path.join(appRoot, 'bin', 'ffmpeg.exe'),
-    path.join(appRoot, 'bin', 'ffmpeg'),
-    // 本机历史路径（svc_common.py 里的硬编码兜底，保持一致）
-    'C:\\Users\\admin\\ffmpeg\\ffmpeg-master-latest-win64-gpl\\bin\\ffmpeg.exe',
-    // PATH 里的
-    ...whichAll(),
-  ])
-}
-
-/** 在 PATH 里找 ffmpeg。找不到就返回空数组。 */
-function whichAll(): string[] {
-  const exts = process.platform === 'win32' ? ['.exe', '.cmd', ''] : ['']
-  const dirs = (process.env.PATH ?? '').split(path.delimiter).filter(Boolean)
-  const out: string[] = []
-  for (const d of dirs) {
-    for (const e of exts) {
-      out.push(path.join(d, `ffmpeg${e}`))
-    }
-  }
-  return out
+/**
+ * ffmpeg 只认包内自带的那份。
+ *
+ * 以前这里还有「开发机硬编码路径」和「PATH 搜索」两级兜底。那两个兜底
+ * 在开发机上总能命中，所以打包出去缺 ffmpeg 也发现不了；等到别人机器上
+ * PATH 里恰好有个别的 ffmpeg，就会用错的版本跑出诡异的音频，
+ * 排查成本极高。现在只认 <appRoot>/bin/ffmpeg.exe，找不到就明说。
+ */
+function resolveFfmpeg(appRoot: string): { path: string | null; expected: string } {
+  const expected = path.join(appRoot, 'bin', process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg')
+  const candidates = [env.VS_FFMPEG, expected]
+  const found = firstExisting(candidates)
+  return { path: found, expected }
 }
 
 // ---------------------------------------------------------------- 状态
@@ -134,7 +136,22 @@ async function bootstrap(): Promise<void> {
     app.quit()
     return
   }
-  const ffmpeg = resolveFfmpeg(appRoot)
+  const ffmpegInfo = resolveFfmpeg(appRoot)
+
+  // ffmpeg 是硬依赖：规范化、mp3 导出都靠它。缺了就当场说清楚缺哪个文件，
+  // 而不是等用户跑完 90 秒推理才在最后一步炸。
+  if (!ffmpegInfo.path) {
+    const msg =
+      `找不到 ffmpeg。\n\n期望位置：\n${ffmpegInfo.expected}\n\n` +
+      `这个文件本该随安装包一起分发。如果是从 zip 解压的，` +
+      `检查 resources\\runtime\\bin\\ffmpeg.exe 是否被杀毒软件隔离了。`
+    mainLog().error('[boot] ffmpeg missing', { expected: ffmpegInfo.expected })
+    const { dialog } = await import('electron')
+    dialog.showErrorBox('缺少 ffmpeg', msg)
+    app.quit()
+    return
+  }
+  const ffmpeg: string = ffmpegInfo.path
 
   // 2. 数据库 + 迁移
   //

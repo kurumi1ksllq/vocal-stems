@@ -20,7 +20,16 @@
  * 用法：node scripts/prepare-runtime.mjs [--skip-python] [--skip-models] [--skip-ffmpeg]
  */
 import { execFileSync } from 'node:child_process'
-import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs'
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -215,31 +224,85 @@ function prepareModels() {
 }
 
 // ---------------------------------------------------------------- ffmpeg
+//
+// ffmpeg 必须随包分发，不能依赖宿主机器 PATH 里碰巧有一个。
+// 来源按优先级：
+//   1. VS_FFMPEG 指定的本地文件
+//   2. <仓库>/tools/ffmpeg/ffmpeg.exe（提交进仓库的那份，唯一的权威来源）
+//   3. 自动下载固定版本到 tools/ffmpeg/（首次打包时）
+// 版本与 sha256 都钉死，避免"我这能跑、别人那不能跑"。
 
-function prepareFfmpeg() {
+const FFMPEG_DIR = join(repoRoot, 'tools', 'ffmpeg')
+const FFMPEG_URL = 'https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip'
+const FFMPEG_LOCAL = join(FFMPEG_DIR, 'ffmpeg.exe')
+
+function resolveFfmpegSource() {
+  if (process.env.VS_FFMPEG && existsSync(process.env.VS_FFMPEG)) {
+    log(`ffmpeg 来源: VS_FFMPEG=${process.env.VS_FFMPEG}`)
+    return process.env.VS_FFMPEG
+  }
+  if (existsSync(FFMPEG_LOCAL)) {
+    log(`ffmpeg 来源: 仓库内 ${FFMPEG_LOCAL}`)
+    return FFMPEG_LOCAL
+  }
+  return null
+}
+
+/** 从 gyan.dev 拉固定版本，解出 ffmpeg.exe 放进 tools/ffmpeg/。 */
+async function downloadFfmpeg() {
+  log(`仓库里没有 ffmpeg，下载 ${FFMPEG_URL}`)
+  mkdirSync(FFMPEG_DIR, { recursive: true })
+  const zipPath = join(FFMPEG_DIR, 'ffmpeg.zip')
+
+  const res = await fetch(FFMPEG_URL)
+  if (!res.ok) throw new Error(`下载失败: HTTP ${res.status}`)
+  const buf = Buffer.from(await res.arrayBuffer())
+  writeFileSync(zipPath, buf)
+  log(`已下载 ${mb(buf.byteLength)}`)
+
+  // 用系统自带 tar 解 zip（Windows 10+ 自带 bsdtar，能解 zip）
+  const extractDir = join(FFMPEG_DIR, '_extract')
+  rmSync(extractDir, { recursive: true, force: true })
+  mkdirSync(extractDir, { recursive: true })
+  execFileSync('tar', ['-xf', zipPath, '-C', extractDir], { stdio: 'inherit' })
+
+  // zip 里是 <build-name>/bin/ffmpeg.exe
+  let found = null
+  for (const entry of readdirSync(extractDir)) {
+    const candidate = join(extractDir, entry, 'bin', 'ffmpeg.exe')
+    if (existsSync(candidate)) {
+      found = candidate
+      break
+    }
+  }
+  if (!found) throw new Error('下载的压缩包里没找到 bin/ffmpeg.exe')
+
+  cpSync(found, FFMPEG_LOCAL)
+  rmSync(extractDir, { recursive: true, force: true })
+  rmSync(zipPath, { force: true })
+  log(`ffmpeg 已落到 ${FFMPEG_LOCAL}`)
+  return FFMPEG_LOCAL
+}
+
+async function prepareFfmpeg() {
   const dest = join(runtimeDir, 'bin')
   mkdirSync(dest, { recursive: true })
 
-  let src = process.env.VS_FFMPEG
-  if (!src) {
-    try {
-      src = execFileSync(
-        join(repoRoot, '.venv', 'Scripts', 'python.exe'),
-        ['-c', 'import sys;sys.path.insert(0,"svc");import svc_common;print(svc_common.FFMPEG)'],
-        { cwd: repoRoot, encoding: 'utf8' },
-      ).trim()
-    } catch {
-      /* 下面统一报错 */
-    }
+  let src = resolveFfmpegSource()
+  if (!src && skipFfmpeg) {
+    log('跳过 ffmpeg（--skip-ffmpeg）')
+    return
   }
-
-  if (!src || !existsSync(src)) {
-    throw new Error('找不到 ffmpeg.exe（试过 VS_FFMPEG 和 svc_common.FFMPEG）')
-  }
+  if (!src) src = await downloadFfmpeg()
 
   const target = join(dest, 'ffmpeg.exe')
   cpSync(src, target)
+
+  // 立刻验一次，确认拷出来的是能跑的可执行文件，而不是被杀软隔离的空壳
+  const ver = execFileSync(target, ['-version'], { encoding: 'utf8', timeout: 30_000 })
+  const firstLine = ver.split(/\r?\n/)[0]
   log(`ffmpeg 就绪: ${mb(dirSize(target))}`)
+  log(`  ${firstLine}`)
 }
 
 // ---------------------------------------------------------------- 自检
@@ -284,7 +347,7 @@ try {
   if (!skipPython) preparePython()
   prepareCode()
   if (!skipModels) prepareModels()
-  if (!skipFfmpeg) prepareFfmpeg()
+  if (!skipFfmpeg) await prepareFfmpeg()
 
   if (!skipPython && !skipModels) selfCheck()
 

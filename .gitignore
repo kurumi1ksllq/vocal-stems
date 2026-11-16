@@ -104,3 +104,12 @@ _tse/
 # 本地临时文件
 *.log
 *.tmp
+
+# ---------------- 本地新增: 随包分发的二进制 ----------------
+# tools/ffmpeg/ffmpeg.exe 有 195 MB，超过 GitHub 单文件 100 MB 上限，不能入库。
+# 它由 web/scripts/prepare-runtime.mjs 在首次打包时自动下载固定版本到这里，
+# 之后每次打包复用。仓库里只保留这份说明，不保留二进制。
+# 想用自己编译/指定版本时：设 VS_FFMPEG 指向那个 exe。
+tools/ffmpeg/*.exe
+tools/ffmpeg/*.zip
+tools/ffmpeg/_extract/
