@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
 /**
  * 应用根：HashRouter + ErrorBoundary。
  *
@@ -64,12 +65,13 @@ class ErrorBoundary extends Component<{ children: ReactNode }, BoundaryState> {
     if (!error) return this.props.children
 
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center">
-        <p className="text-[15px] font-medium text-destructive">出错了</p>
-        <pre className="text-muted-foreground max-w-lg overflow-auto rounded-md border border-border/60 bg-background/60 p-3 text-left font-mono text-[11px]">
+      <div className="flex h-full flex-col items-start justify-center gap-2 p-10">
+        <p className="panel-label">出错了</p>
+        <p className="text-base">界面崩在渲染阶段，任务不受影响。</p>
+        <pre className="border-border text-muted-foreground mt-1 max-w-xl overflow-auto border px-2.5 py-2 font-mono text-2xs">
           {error.message}
         </pre>
-        <p className="text-muted-foreground text-[11px]">错误已记录到日志</p>
+        <p className="text-muted-foreground/70 text-2xs">这条错误已经写进日志。</p>
         <Button size="sm" variant="secondary" onClick={() => window.location.reload()}>
           重新加载
         </Button>

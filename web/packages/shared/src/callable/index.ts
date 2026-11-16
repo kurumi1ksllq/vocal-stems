@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
 /**
  * Hono RPC 契约 —— 主进程实现，渲染进程用 `hc<CallableType>` 调用。
  *
@@ -97,7 +98,8 @@ export function createApp(deps: AppDeps) {
 
     .get('/jobs/:id/result', async (c) => {
       const result = await deps.sidecar.getResult(c.req.param('id'))
-      if (!result) return c.json({ message: '尚无产物' }, 409)
+      // 两种都落到这里：任务还没产物目录，或目录已被移走/清理（E2E 跑在临时目录时常见）
+      if (!result) return c.json({ message: '产物目录已不在了（可能被移动或清理过）' }, 409)
       return c.json(result)
     })
 

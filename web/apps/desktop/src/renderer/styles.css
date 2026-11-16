@@ -1,42 +1,88 @@
+/* SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0 */
 @import "tailwindcss";
 @import "@vs/ui/styles.css";
 
+/*
+ * 这个 CSS 在 apps/desktop 里，组件类名在 packages/ui 里。
+ * Tailwind v4 只扫「CSS 所在目录往下」，不跨包，必须显式声明 @source，
+ * 否则 button/card/badge 里的 bg-tint、bg-glass 全都不会被生成。
+ */
+@source "../../../../packages/ui/src";
+
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * iOS 27 / Liquid Glass。
+ *
+ * 三层结构，和 iOS 一致：
+ *   1. 背景：不是纯色，是有深度的一块"壁纸"。极深的靛蓝底 + 两团很淡的
+ *      紫/青辉光，肉眼几乎看不出边界，只是让整个界面浮起来。
+ *   2. 玻璃层：半透明白（5%–8%）+ backdrop-blur + 饱和度提升。
+ *      每块玻璃都有 1px 的内高光（顶部）和外投影，这是"厚度"的来源。
+ *   3. 内容：文字几乎全白，层级靠字号/字重/透明度，不靠颜色。
+ *
+ * 圆角有语义：
+ *   · 24px  页面级面板 / sheet
+ *   · 16px  分组内的行容器（grouped inset list）
+ *   · 999px 胶囊：按钮、分段控件、开关、状态标签
+ * 全用一个圆角是模板感的来源，这里三档各管一件事。
+ *
+ * 彩色只用作 tint（#0A84FF 一族）和轨道身份，不做大面积铺色。
+ */
 :root {
-  --radius: 0.75rem;
+  --radius: 24px;
 
-  --background: #0a0c10;
-  --foreground: #e8eaf0;
-  --card: #10131a;
-  --card-foreground: #e8eaf0;
-  --popover: #141821;
-  --popover-foreground: #e8eaf0;
-  --primary: #f0a44a;
-  --primary-foreground: #1a1206;
-  --secondary: #1a1f2b;
-  --secondary-foreground: #d6dae4;
-  --muted: #161a23;
-  --muted-foreground: #8891a3;
-  --accent: #1b2230;
-  --accent-foreground: #e8eaf0;
-  --destructive: #e5484d;
-  --destructive-foreground: #fff;
-  --border: #232936;
-  --input: #232936;
-  --ring: #f0a44a;
+  /* 背景与文字 */
+  --background: #05060b;
+  --foreground: #f5f6fa;
 
-  --stem-vocal: #f0a44a;
-  --stem-backing: #a78bfa;
-  --stem-inst: #4cc9d4;
-  --stem-reverb: #94a3b8;
+  /* 玻璃层不做明暗三档，统一由 .glass 表达 */
+  --card: rgba(255, 255, 255, 0.055);
+  --card-foreground: #f5f6fa;
+  --popover: rgba(28, 30, 40, 0.82);
+  --popover-foreground: #f5f6fa;
+
+  /* 主按钮：iOS 的 prominent glass，近白胶囊 + 深色字 */
+  --primary: #ffffff;
+  --primary-foreground: #0b0c12;
+  --secondary: rgba(255, 255, 255, 0.11);
+  --secondary-foreground: #f2f3f8;
+  --muted: rgba(255, 255, 255, 0.06);
+  --muted-foreground: #9ca2b4;
+  --accent: rgba(255, 255, 255, 0.14);
+  --accent-foreground: #ffffff;
+
+  --destructive: #ff453a;
+  --destructive-foreground: #ffffff;
+
+  /* 边框是白色 alpha——玻璃的边不是灰线，是折光 */
+  --border: rgba(255, 255, 255, 0.12);
+  --input: rgba(255, 255, 255, 0.14);
+
+  /* iOS 系统蓝 */
+  --ring: #0a84ff;
+  --tint: #0a84ff;
+
+  /* 轨道身份色，取 iOS 系统色系 */
+  --stem-vocal: #ffb340;
+  --stem-backing: #bf8cff;
+  --stem-inst: #5fd3e0;
+  --stem-reverb: #98a0ae;
+
+  --signal: #ff9f0a;
+
+  /* 玻璃的两层光：顶部内高光 + 大范围柔和落影 */
+  --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  --glass-shadow: 0 1px 1px rgba(0, 0, 0, 0.28), 0 18px 48px -20px rgba(0, 0, 0, 0.7);
+  --glass-blur: blur(30px) saturate(180%);
 }
 
 @theme inline {
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --radius-2xl: 28px;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -57,20 +103,47 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-tint: var(--tint);
+  --color-signal: var(--signal);
 
   --color-stem-vocal: var(--stem-vocal);
   --color-stem-backing: var(--stem-backing);
   --color-stem-inst: var(--stem-inst);
   --color-stem-reverb: var(--stem-reverb);
 
+  /*
+   * Windows 上没有 SF Pro。Segoe UI Variable 的 Display / Text 两个光学尺寸
+   * 是最接近的替身：大标题用 Display（更紧、更几何），正文用 Text（更开阔）。
+   * 中文统一回退到微软雅黑 UI。
+   */
   --font-sans:
-    "Segoe UI", "Microsoft YaHei UI", "PingFang SC", "Hiragino Sans GB", system-ui, sans-serif;
-  --font-mono: "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+    "SF Pro Text", "Segoe UI Variable Text", "Segoe UI", "Microsoft YaHei UI", "PingFang SC",
+    system-ui, sans-serif;
+  --font-display:
+    "SF Pro Display", "Segoe UI Variable Display", "Segoe UI", "Microsoft YaHei UI", "PingFang SC",
+    system-ui, sans-serif;
+  --font-mono: "Cascadia Mono", "SF Mono", Consolas, monospace;
+
+  /* iOS 的字号阶梯 */
+  --text-caption2: 0.6875rem;
+  --text-caption2--line-height: 1.35;
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1.4;
+  --text-footnote: 0.8125rem;
+  --text-footnote--line-height: 1.45;
+  --text-subhead: 0.9375rem;
+  --text-subhead--line-height: 1.45;
+  --text-body: 1rem;
+  --text-body--line-height: 1.5;
+  --text-title3: 1.25rem;
+  --text-title3--line-height: 1.25;
+  --text-title1: 2rem;
+  --text-title1--line-height: 1.15;
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
   }
 
   html,
@@ -80,15 +153,29 @@
   }
 
   body {
-    @apply bg-background text-foreground font-sans antialiased;
+    @apply text-foreground font-sans;
+    font-size: var(--text-footnote);
+    background-color: var(--background);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    /* 壁纸：三团极淡的辉光，让玻璃层有东西可以折射 */
     background-image:
-      radial-gradient(circle at 15% -10%, rgba(240, 164, 74, 0.07), transparent 45%),
-      radial-gradient(circle at 85% 0%, rgba(76, 201, 212, 0.06), transparent 40%);
+      radial-gradient(60rem 40rem at 12% -12%, rgba(94, 74, 210, 0.42), transparent 62%),
+      radial-gradient(50rem 34rem at 92% 4%, rgba(20, 122, 160, 0.34), transparent 60%),
+      radial-gradient(46rem 30rem at 68% 108%, rgba(160, 60, 150, 0.24), transparent 64%);
     background-attachment: fixed;
   }
 
+  /* iOS 大标题：Display 光学尺寸 + 负字距 */
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    letter-spacing: -0.022em;
+  }
+
   ::selection {
-    background: rgba(240, 164, 74, 0.28);
+    background: rgba(10, 132, 255, 0.42);
   }
 
   ::-webkit-scrollbar {
@@ -99,46 +186,132 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: #232936;
-    border-radius: 999px;
-    border: 2px solid transparent;
+    background: rgba(255, 255, 255, 0.16);
+    border: 3px solid transparent;
     background-clip: content-box;
+    border-radius: 999px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #37404f;
+    background: rgba(255, 255, 255, 0.3);
     background-clip: content-box;
+  }
+
+  /* iOS 的键盘焦点是蓝色的环，不是描边 */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+    border-radius: 999px;
+  }
+}
+
+@keyframes meter {
+  0%,
+  100% {
+    transform: scaleY(0.25);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes window-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes sheet-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
 @layer utilities {
-  @keyframes pulse-ring {
-    0% {
-      box-shadow: 0 0 0 0 rgba(240, 164, 74, 0.45);
-    }
-    70% {
-      box-shadow: 0 0 0 8px rgba(240, 164, 74, 0);
-    }
-    100% {
-      box-shadow: 0 0 0 0 rgba(240, 164, 74, 0);
-    }
+  /* 玻璃面板。厚度 = 内高光 + 落影，不是靠加深底色。 */
+  .glass {
+    background: var(--card);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    box-shadow: var(--glass-highlight), var(--glass-shadow);
   }
 
-  .animate-pulse-ring {
-    animation: pulse-ring 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  /* 更厚的玻璃：浮层、底部标签栏、toast */
+  .glass-thick {
+    background: rgba(255, 255, 255, 0.09);
+    backdrop-filter: blur(40px) saturate(200%);
+    -webkit-backdrop-filter: blur(40px) saturate(200%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.22),
+      0 2px 2px rgba(0, 0, 0, 0.3),
+      0 24px 60px -18px rgba(0, 0, 0, 0.8);
   }
 
-  @keyframes fade-up {
-    from {
-      opacity: 0;
-      transform: translateY(6px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+  /* 凹槽：输入框、波形、日志。iOS 的 field 比背景更暗。 */
+  .well {
+    background: rgba(0, 0, 0, 0.28);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.45);
   }
 
-  .animate-fade-up {
-    animation: fade-up 0.28s ease-out both;
+  /* 分组列表里的一行：分隔线左右内缩 16px，和 iOS 一致。
+     实际行组件各自画 border-t，这个类只留给需要整体套的容器。 */
+  .inset-rule > * + * {
+    border-top: 1px solid rgba(255, 255, 255, 0.075);
+    margin-inline: 1rem;
+  }
+
+  /* iOS 分组标题：小号、字重 500、透明度低。
+     字距只加 0.02em——中文加多了就是"漏风"。 */
+  .group-label {
+    @apply text-muted-foreground font-display text-caption2;
+    letter-spacing: 0.02em;
+  }
+
+  /* 数字读数：等宽数字，避免播放时抖动 */
+  .readout {
+    @apply font-display text-caption2;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* 进场：只给 sheet 用，不做逐块入场 */
+  .sheet-up {
+    animation: sheet-up 0.28s cubic-bezier(0.32, 0.72, 0, 1) both;
+  }
+
+  .window-in {
+    animation: window-in 0.32s cubic-bezier(0.32, 0.72, 0, 1) both;
+  }
+
+  /* 按下反馈：iOS 的 scale-down，不是位移 */
+  .pressable {
+    transition:
+      transform 0.16s cubic-bezier(0.32, 0.72, 0, 1),
+      background-color 0.16s ease,
+      color 0.16s ease;
+  }
+  .pressable:active {
+    transform: scale(0.97);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+  .pressable:active {
+    transform: none;
   }
 }

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
 import type { Messages } from './zh-CN.ts'
 
 /** 英文资源：只做结构占位，键必须与 zh-CN 完全一致。 */
@@ -118,7 +119,7 @@ export const en: Messages = {
     pipeline: 'Pipeline',
     design: 'Design notes',
     stack: 'Stack',
-    license: 'Original parts PolyForm Strict 1.0.0 · upstream parts MIT',
+    license: 'Whole repo PolyForm Strict 1.0.0 · upstream MIT kept as attribution',
   },
   toast: {
     queued: 'Queued: {{mode}}',

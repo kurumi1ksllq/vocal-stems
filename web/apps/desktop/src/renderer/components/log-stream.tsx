@@ -1,6 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
 import { streamLogs } from '@renderer/lib/api'
 import { cn } from '@vs/ui/lib/utils'
-import { TerminalSquare } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
 const TAG_RE = /^\s*\[(\d\/\d|失败|.+?)\]/
@@ -11,18 +11,20 @@ interface Line {
 }
 
 /**
- * 实时日志。用 SSE 而不是轮询：推理要跑 1–3 分钟，
+ * 实时日志。走 IPC 推送而不是轮询：推理要跑 1–3 分钟，
  * 轮询会把整段日志反复传一遍。
+ *
+ * 这里唯一明确用等宽字体的地方——它是机器输出，不是界面文字。
  */
 export function LogStream({
   jobId,
   active,
   seed,
   className,
-  maxHeight = 260,
+  maxHeight = 200,
 }: {
   jobId: string
-  /** 任务已结束就不用再连 SSE */
+  /** 任务已结束就不用再订阅 */
   active: boolean
   seed?: string[]
   className?: string
@@ -34,8 +36,7 @@ export function LogStream({
   const stickBottom = useRef(true)
   const nextId = useRef(0)
 
-  // 换任务时把状态整体重置。用 key={jobId} 交给父组件重挂载也能达到同样效果，
-  // 但这里自己处理，调用方不用关心。
+  // 换任务时把状态整体重置
   const [boundJob, setBoundJob] = useState(jobId)
   if (boundJob !== jobId) {
     setBoundJob(jobId)
@@ -66,7 +67,6 @@ export function LogStream({
   }, [jobId, active])
 
   // 只在用户本来就贴着底部时才自动滚动，避免打断向上翻看。
-  // 依赖 lines 是为了「有新行就滚」，effect 内部只碰 ref 属于预期用法。
   // biome-ignore lint/correctness/useExhaustiveDependencies: 用 lines 作为触发信号，body 里只操作 DOM ref
   useEffect(() => {
     const el = boxRef.current
@@ -75,16 +75,13 @@ export function LogStream({
   }, [lines])
 
   return (
-    <div className={cn('rounded-lg border border-border/70 bg-background/60', className)}>
-      <div className="text-muted-foreground flex items-center gap-2 border-b border-border/60 px-3 py-2 text-[11px]">
-        <TerminalSquare className="size-3.5" />
+    <div className={cn('well overflow-hidden rounded-[14px]', className)}>
+      <div className="text-muted-foreground flex items-center gap-2 border-b border-white/7 px-3 py-1.5 text-caption2">
         <span>运行日志</span>
         <span className="ml-auto flex items-center gap-1.5">
           <span
-            className={cn(
-              'size-1.5 rounded-full',
-              done ? 'bg-muted-foreground/50' : 'bg-amber-400 animate-pulse',
-            )}
+            className={cn('size-1.5 rounded-full', done ? 'bg-muted-foreground/40' : 'bg-signal')}
+            aria-hidden
           />
           {done ? '已结束' : '实时'}
         </span>
@@ -96,10 +93,10 @@ export function LogStream({
           stickBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 24
         }}
         style={{ maxHeight }}
-        className="overflow-y-auto px-3 py-2 font-mono text-[11.5px] leading-relaxed"
+        className="overflow-y-auto px-3 py-2 font-mono text-caption2 leading-relaxed"
       >
         {lines.length === 0 ? (
-          <p className="text-muted-foreground/70">等待输出…</p>
+          <p className="text-muted-foreground/50">等待输出…</p>
         ) : (
           lines.map((line) => <LogLine key={line.id} text={line.text} />)
         )}
@@ -116,13 +113,13 @@ function LogLine({ text }: { text: string }) {
   return (
     <div
       className={cn(
-        'whitespace-pre-wrap break-words',
+        'break-words whitespace-pre-wrap',
         isFail
-          ? 'text-red-400'
+          ? 'text-destructive'
           : isDone
-            ? 'text-emerald-400'
+            ? 'text-[#30d158]'
             : m
-              ? 'text-foreground/90'
+              ? 'text-foreground/85'
               : 'text-muted-foreground',
       )}
     >

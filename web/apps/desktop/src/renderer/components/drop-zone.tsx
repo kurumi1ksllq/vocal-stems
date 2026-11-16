@@ -1,6 +1,7 @@
+// SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
 import { Button } from '@vs/ui/components/button'
 import { cn, formatBytes } from '@vs/ui/lib/utils'
-import { FileAudio, Upload, X } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { useCallback, useRef, useState } from 'react'
 
 const ACCEPT = '.wav,.mp3,.flac,.m4a,.aac,.ogg,.opus,.wma,.aiff,.aif,.ape,.mp4,.mkv,.mov,audio/*'
@@ -13,7 +14,9 @@ interface DropZoneProps {
 
 /**
  * 拖拽 + 点选。整块由原生 button 承载，键盘和拖放都走同一个元素。
- * 只做本地校验（扩展名），真正的解码交给后端。
+ * 只做本地校验（扩展名），真正的解码交给 Python 侧。
+ *
+ * 视觉是 iOS 的 inset field：比玻璃更暗的一层，虚线只在拖拽时出现。
  */
 export function DropZone({ file, onFile, disabled }: DropZoneProps) {
   const inputRef = useRef<HTMLInputElement | null>(null)
@@ -26,7 +29,7 @@ export function DropZone({ file, onFile, disabled }: DropZoneProps) {
       const dot = f.name.lastIndexOf('.')
       const ext = dot >= 0 ? f.name.slice(dot).toLowerCase() : ''
       if (!ext || !ACCEPT.includes(ext)) {
-        setReject(`不支持 ${ext || '这个格式'}，请选 wav / mp3 / flac 等音频`)
+        setReject(`这个格式不行：${ext || '无扩展名'}`)
         return
       }
       setReject(null)
@@ -45,12 +48,9 @@ export function DropZone({ file, onFile, disabled }: DropZoneProps) {
     <div className="space-y-2">
       <div
         className={cn(
-          'rounded-xl border-2 border-dashed transition-all',
-          dragging
-            ? 'border-primary bg-primary/8 scale-[1.01]'
-            : 'border-border/70 bg-background/30 hover:border-border hover:bg-background/50',
+          'well relative rounded-[16px] transition-all duration-200',
+          dragging && 'ring-2 ring-tint/60',
           disabled && 'opacity-50',
-          file && 'border-solid border-primary/40 bg-primary/5',
         )}
       >
         <button
@@ -70,46 +70,39 @@ export function DropZone({ file, onFile, disabled }: DropZoneProps) {
           }}
           aria-label={file ? `${file.name}，点击更换文件` : '选择或拖入音频文件'}
           className={cn(
-            'flex min-h-[168px] w-full cursor-pointer flex-col items-center justify-center gap-3 rounded-xl p-6 text-center outline-none',
-            'focus-visible:ring-2 focus-visible:ring-ring/40',
+            'flex min-h-[124px] w-full cursor-pointer flex-col items-center justify-center gap-2 px-4 py-5 text-center outline-none',
             disabled && 'pointer-events-none',
           )}
         >
           {file ? (
             <>
-              <div className="bg-primary/12 text-primary flex size-11 items-center justify-center rounded-full">
-                <FileAudio className="size-5" />
-              </div>
-              <div className="min-w-0 max-w-full space-y-0.5">
-                <p className="truncate px-4 text-[13px] font-medium" title={file.name}>
-                  {file.name}
-                </p>
-                <p className="text-muted-foreground font-mono text-[11px]">
-                  {formatBytes(file.size)}
-                </p>
-              </div>
+              <span className="text-tint flex size-9 items-center justify-center rounded-full bg-white/10">
+                <span className="font-display text-caption font-semibold">WAV</span>
+              </span>
+              <span
+                className="text-subhead max-w-full truncate leading-snug font-medium"
+                title={file.name}
+              >
+                {file.name}
+              </span>
+              <span className="readout text-muted-foreground">{formatBytes(file.size)}</span>
             </>
           ) : (
             <>
-              <div className="bg-secondary/70 text-muted-foreground flex size-11 items-center justify-center rounded-full">
-                <Upload className="size-5" />
-              </div>
-              <div className="space-y-1">
-                <p className="text-[13px] font-medium">把音频拖进来</p>
-                <p className="text-muted-foreground text-[12px]">或点击选择文件</p>
-              </div>
-              <p className="text-muted-foreground/70 font-mono text-[10.5px]">
-                wav · mp3 · flac · m4a · ogg
-              </p>
+              <span className="text-tint flex size-9 items-center justify-center rounded-full bg-tint/16">
+                <Plus className="size-4" />
+              </span>
+              <span className="text-subhead font-medium">添加音频</span>
+              <span className="text-muted-foreground text-caption">拖进来，或点一下选文件</span>
+              <span className="readout text-muted-foreground/70">wav · mp3 · flac · m4a · ogg</span>
             </>
           )}
         </button>
 
         {file && !disabled && (
-          <div className="flex justify-center pb-3">
+          <div className="absolute top-2 right-2">
             <Button type="button" variant="ghost" size="sm" onClick={clear}>
-              <X className="size-3.5" />
-              换一个
+              移除
             </Button>
           </div>
         )}
@@ -123,7 +116,7 @@ export function DropZone({ file, onFile, disabled }: DropZoneProps) {
         />
       </div>
 
-      {reject && <p className="text-destructive text-[11.5px]">{reject}</p>}
+      {reject && <p className="text-destructive px-1 text-caption2">{reject}</p>}
     </div>
   )
 }

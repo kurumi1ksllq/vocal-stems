@@ -1,9 +1,9 @@
+// SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
 import { StemPlayer } from '@renderer/components/stem-player'
 import type { ResultDir, Stem } from '@renderer/lib/api'
-import { Badge } from '@vs/ui/components/badge'
 import { Button } from '@vs/ui/components/button'
-import { cn, formatBytes } from '@vs/ui/lib/utils'
-import { Download, Loader2, Music2 } from 'lucide-react'
+import { formatBytes } from '@vs/ui/lib/utils'
+import { Download } from 'lucide-react'
 import { useState } from 'react'
 
 const KEY_COLOR: Record<string, string> = {
@@ -12,14 +12,14 @@ const KEY_COLOR: Record<string, string> = {
   backing: 'var(--stem-backing)',
   reverb: 'var(--stem-reverb)',
   dereverb: 'var(--stem-inst)',
-  other: 'var(--muted-foreground)',
+  other: 'var(--stem-reverb)',
 }
 
 const FUSE_LABEL: Record<string, string> = {
-  mag_median_fft: '融合 · 幅度中位',
-  mag_avg_fft: '融合 · 幅度平均',
-  median_fft: '融合 · 复数中位（旧）',
-  avg_fft: '融合 · 复数平均（旧）',
+  mag_median_fft: '幅度中位',
+  mag_avg_fft: '幅度平均',
+  median_fft: '复数中位',
+  avg_fft: '复数平均',
 }
 
 interface StemGridProps {
@@ -29,8 +29,10 @@ interface StemGridProps {
 }
 
 /**
- * 产物网格。同一时刻只允许一条轨播放，切换时自动暂停上一条。
- * 单模型轨默认折叠——融合结果才是交付物。
+ * 产物列表。每行是一条轨，左侧色点标明身份，中间是波形，右侧是下载。
+ * 同一时刻只允许一条轨播放，切换时自动暂停上一条。
+ *
+ * 用 iOS grouped list：每轨一张内嵌卡片，卡片之间留 8px。
  */
 export function StemGrid({ result, fusedOnly = true }: StemGridProps) {
   const [playingUrl, setPlayingUrl] = useState<string | null>(null)
@@ -48,30 +50,29 @@ export function StemGrid({ result, fusedOnly = true }: StemGridProps) {
   const shown = showAll ? [...fused, ...singles] : fused.length > 0 ? fused : singles
 
   if (result.stems.length === 0) {
-    return (
-      <div className="text-muted-foreground flex flex-col items-center gap-2 py-10 text-[13px]">
-        <Music2 className="size-5 opacity-50" />
-        这个目录里没有 wav 产物
-      </div>
-    )
+    return <p className="text-muted-foreground py-4 text-caption">这个目录里没有 wav 产物。</p>
   }
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-1.5">
-          {fused.length > 0 && <Badge variant="success">{fused.length} 个融合产物</Badge>}
-          {singles.length > 0 && <Badge variant="outline">{singles.length} 个单模型轨</Badge>}
-          {result.stems.some((s) => s.mp3Url) && <Badge variant="info">mp3 试听已导出</Badge>}
-        </div>
+    <div className="space-y-2.5">
+      <div className="flex items-center gap-3">
+        <span className="text-muted-foreground text-caption2">
+          {shown.length} 条轨
+          {singles.length > 0 && !showAll && ` · 另有 ${singles.length} 条单模型`}
+        </span>
         {fused.length > 0 && singles.length > 0 && (
-          <Button variant="ghost" size="sm" onClick={() => setShowAll((v) => !v)}>
-            {showAll ? '只看融合' : '展开单模型'}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="ml-auto"
+            onClick={() => setShowAll((v) => !v)}
+          >
+            {showAll ? '只看融合结果' : '显示单模型轨'}
           </Button>
         )}
       </div>
 
-      <div className="grid gap-2.5">
+      <div className="space-y-2">
         {shown.map((stem) => (
           <StemRow
             key={stem.name}
@@ -100,33 +101,22 @@ function StemRow({
   const fuseText = stem.fuseMode ? FUSE_LABEL[stem.fuseMode] : null
 
   return (
-    <div
-      className={cn(
-        'rounded-xl border bg-card/40 p-3 transition-colors',
-        stem.fused ? 'border-border/80' : 'border-border/45',
-      )}
-      style={{ borderLeft: `3px solid ${color}` }}
-    >
-      <div className="mb-2 flex items-center gap-2">
-        <span className="truncate text-[13px] font-medium" title={stem.name}>
+    <div className="glass border-white/10 rounded-[16px] border px-3.5 py-3">
+      <div className="flex items-center gap-2">
+        <span className="size-2 shrink-0 rounded-full" style={{ background: color }} aria-hidden />
+        <span className="truncate text-footnote font-medium" title={stem.name}>
           {stem.label}
         </span>
-        {fuseText ? (
-          <Badge variant="teal" className="shrink-0">
-            {fuseText}
-          </Badge>
-        ) : (
-          <Badge variant="outline" className="shrink-0">
-            单模型
-          </Badge>
-        )}
-        <span className="text-muted-foreground ml-auto shrink-0 font-mono text-[11px]">
+        <span className="text-muted-foreground/70 shrink-0 text-caption2">
+          {fuseText ?? '单模型'}
+        </span>
+        <span className="readout text-muted-foreground ml-auto shrink-0">
           {formatBytes(stem.size)}
         </span>
         <a
           href={stem.url}
           download={stem.name}
-          className="text-muted-foreground hover:text-foreground shrink-0 transition-colors"
+          className="text-tint hover:text-tint/80 shrink-0 transition-colors"
           title={`下载 ${stem.name}`}
           aria-label={`下载 ${stem.name}`}
         >
@@ -134,47 +124,45 @@ function StemRow({
         </a>
       </div>
 
-      <StemPlayer
-        url={stem.url}
-        label={stem.label}
-        color={color}
-        playingUrl={playingUrl}
-        onPlayUrl={onPlayUrl}
-      />
-
-      <div
-        className="text-muted-foreground mt-1.5 truncate font-mono text-[10.5px] opacity-70"
-        title={stem.name}
-      >
-        {stem.name}
+      <div className="mt-2.5">
+        <StemPlayer
+          url={stem.url}
+          label={stem.label}
+          color={color}
+          playingUrl={playingUrl}
+          onPlayUrl={onPlayUrl}
+        />
       </div>
-      {stem.mp3Url && (
-        <a
-          href={stem.mp3Url}
-          download
-          className="text-muted-foreground hover:text-primary mt-1 inline-flex items-center gap-1 text-[11px] transition-colors"
-        >
-          <Download className="size-3" />
-          下载 mp3 试听
-        </a>
-      )}
+
+      <div className="text-muted-foreground/50 mt-1.5 flex items-center gap-2 font-mono text-caption2">
+        <span className="truncate" title={stem.name}>
+          {stem.name}
+        </span>
+        {stem.mp3Url && (
+          <a
+            href={stem.mp3Url}
+            download
+            className="text-tint hover:text-tint/80 shrink-0 underline-offset-2 transition-colors hover:underline"
+          >
+            mp3
+          </a>
+        )}
+      </div>
     </div>
   )
 }
 
-/** 结果加载占位 */
+/** 结果加载占位：保持和真实行一样的骨架，避免跳版 */
 export function StemGridSkeleton() {
   return (
-    <div className="space-y-2.5">
+    <div className="space-y-2">
       {[0, 1].map((i) => (
-        <div key={i} className="rounded-xl border border-border/50 bg-card/30 p-3">
-          <div className="mb-2 flex items-center gap-2">
-            <div className="bg-secondary/70 h-3.5 w-24 animate-pulse rounded" />
-            <div className="bg-secondary/50 h-3.5 w-20 animate-pulse rounded-full" />
+        <div key={i} className="glass border-white/10 space-y-2 rounded-[16px] border px-3.5 py-3">
+          <div className="flex items-center gap-2">
+            <div className="bg-white/12 h-2.5 w-16 animate-pulse rounded-full" />
+            <div className="bg-white/8 h-2.5 w-10 animate-pulse rounded-full" />
           </div>
-          <div className="bg-secondary/40 flex h-10 animate-pulse items-center justify-center rounded-lg">
-            <Loader2 className="text-muted-foreground size-3.5 animate-spin" />
-          </div>
+          <div className="well h-9 animate-pulse rounded-[12px]" />
         </div>
       ))}
     </div>

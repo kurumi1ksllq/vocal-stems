@@ -1,14 +1,11 @@
+// SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
 import { DropZone } from '@renderer/components/drop-zone'
 import { ModePicker } from '@renderer/components/mode-picker'
 import { OptionsPanel } from '@renderer/components/options-panel'
 import type { Job, JobOptions, ModeKey, SourceKey } from '@renderer/lib/api'
 import { api } from '@renderer/lib/api'
 import { MODE_META, SOURCE_META } from '@renderer/lib/modes'
-import { Badge } from '@vs/ui/components/badge'
 import { Button } from '@vs/ui/components/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@vs/ui/components/card'
-import { Separator } from '@vs/ui/components/separator'
-import { Music4, RotateCcw } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 const DEFAULT_OPTS: JobOptions = {
@@ -37,6 +34,12 @@ function readLast(): LastRun | null {
   }
 }
 
+/**
+ * 发起任务。
+ *
+ * 顺序就是真实操作的顺序：放文件 → 说做什么 → 说拿什么当输入 → 开始。
+ * 一块玻璃装下整条流程，每组之间用 iOS 的分隔线（左右内缩）分开。
+ */
 export function NewJobPanel({
   onCreated,
   healthOk,
@@ -85,71 +88,61 @@ export function NewJobPanel({
   const canSubmit = !!file && !busy && healthOk
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Music4 className="text-primary size-4" />
-          新建分离
-        </CardTitle>
+    <section>
+      <div className="group-label mb-2 flex items-baseline gap-2 px-4">
+        <span>新建分离</span>
         {remembered && (
-          <div className="flex items-center gap-1.5 pt-0.5">
-            <span className="text-muted-foreground/70 text-[10.5px]">
-              上次：{MODE_META[remembered.mode].label} · {SOURCE_META[remembered.source].label} ·
-              并行 {remembered.opts.parallel}
-            </span>
-            <button
-              type="button"
-              onClick={applyRemembered}
-              className="text-muted-foreground hover:text-primary inline-flex items-center gap-0.5 text-[10.5px] transition-colors"
-            >
-              <RotateCcw className="size-2.5" />
-              套用
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={applyRemembered}
+            className="text-tint ml-auto font-normal"
+            title={`${MODE_META[remembered.mode].label} · ${SOURCE_META[remembered.source].label} · 并行 ${remembered.opts.parallel}`}
+          >
+            套用上次
+          </button>
         )}
-      </CardHeader>
+      </div>
 
-      <CardContent className="space-y-4">
-        <DropZone file={file} onFile={setFile} disabled={busy} />
+      <div className="glass border-white/10 rounded-[24px] border">
+        <div className="p-4">
+          <DropZone file={file} onFile={setFile} disabled={busy} />
+        </div>
 
-        <Separator />
+        <div className="border-t border-white/8 p-4">
+          <ModePicker
+            mode={mode}
+            source={source}
+            disabled={busy}
+            onChange={(m, s) => {
+              setMode(m)
+              setSource(s)
+            }}
+          />
+        </div>
 
-        <ModePicker
-          mode={mode}
-          source={source}
-          disabled={busy}
-          onChange={(m, s) => {
-            setMode(m)
-            setSource(s)
-          }}
-        />
+        <div className="border-t border-white/8 px-4">
+          <OptionsPanel opts={opts} onChange={setOpts} disabled={busy} />
+        </div>
 
-        <OptionsPanel opts={opts} onChange={setOpts} disabled={busy} />
+        <div className="space-y-2 border-t border-white/8 p-4">
+          {error && (
+            <p className="bg-destructive/12 text-destructive rounded-[10px] px-3 py-2 text-caption">
+              {error}
+            </p>
+          )}
 
-        {error && (
-          <p className="text-destructive bg-destructive/8 rounded-md border border-destructive/30 px-2.5 py-2 text-[11.5px]">
-            {error}
-          </p>
-        )}
-
-        <div className="space-y-1.5">
           <Button className="w-full" size="lg" disabled={!canSubmit} onClick={() => void submit()}>
-            {busy ? '提交中…' : `开始${MODE_META[mode].label}`}
+            {busy ? '正在提交…' : `开始${MODE_META[mode].label}`}
           </Button>
-          <p className="text-muted-foreground/60 text-center text-[10.5px]">
-            {healthOk ? '推理在本机 GPU 上跑，关掉页面不影响任务' : '后端未连接，无法提交'}
+          <p className="text-muted-foreground/70 px-1 text-caption2">
+            {healthOk
+              ? source === 'mix' && mode !== 'stems'
+                ? '会先自动跑前置步骤，耗时叠加'
+                : `产出 ${MODE_META[mode].outputs}`
+              : '环境未就绪，先看下面的环境检测'}
           </p>
         </div>
-
-        <div className="flex flex-wrap items-center justify-center gap-1.5 pt-0.5">
-          <Badge variant="outline" className="font-mono">
-            {MODE_META[mode].outputs}
-          </Badge>
-          <Badge variant={opts.noEnsemble ? 'outline' : 'success'}>
-            {opts.noEnsemble ? '不融合' : `融合 ${opts.fuse || 'mag_median_fft'}`}
-          </Badge>
-        </div>
-      </CardContent>
-    </Card>
+      </div>
+    </section>
   )
 }

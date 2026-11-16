@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
 import { cn } from '@vs/ui/lib/utils'
 import { useEffect, useRef, useState } from 'react'
 
@@ -124,11 +125,11 @@ export function Waveform({
     const amp = mid - 2
 
     if (!peaks) {
-      ctx.strokeStyle = 'rgba(255,255,255,0.10)'
+      ctx.strokeStyle = 'rgba(255,255,255,0.08)'
       ctx.lineWidth = 1
       ctx.beginPath()
-      ctx.moveTo(0, mid)
-      ctx.lineTo(w, mid)
+      ctx.moveTo(0, Math.round(mid) + 0.5)
+      ctx.lineTo(w, Math.round(mid) + 0.5)
       ctx.stroke()
       return
     }
@@ -142,19 +143,20 @@ export function Waveform({
       const top = mid - (peaks.max[i] ?? 0) * amp
       const bottom = mid - (peaks.min[i] ?? 0) * amp
       const played = x <= playedX
-      ctx.globalAlpha = played ? 1 : 0.3
+      ctx.globalAlpha = played ? 0.95 : 0.22
       ctx.fillStyle = color
-      ctx.fillRect(x, top, Math.max(barW * 0.72, 1), Math.max(bottom - top, 1))
+      ctx.fillRect(x, top, Math.max(barW * 0.62, 1), Math.max(bottom - top, 1))
     }
     ctx.globalAlpha = 1
 
+    // 播放头：一条 1px 竖线，不做圆角或光晕
     if (progress > 0 && progress < 1) {
       ctx.strokeStyle = color
-      ctx.globalAlpha = 0.85
-      ctx.lineWidth = 1.5
+      ctx.globalAlpha = 0.9
+      ctx.lineWidth = 1
       ctx.beginPath()
-      ctx.moveTo(playedX, 0)
-      ctx.lineTo(playedX, h)
+      ctx.moveTo(Math.round(playedX) + 0.5, 0)
+      ctx.lineTo(Math.round(playedX) + 0.5, h)
       ctx.stroke()
       ctx.globalAlpha = 1
     }
@@ -188,7 +190,7 @@ export function Waveform({
   const canvas = <canvas ref={canvasRef} className="h-full w-full" />
 
   const fallback = failed && (
-    <span className="text-muted-foreground absolute inset-0 flex items-center justify-center text-[11px]">
+    <span className="text-muted-foreground/70 absolute inset-0 flex items-center justify-center text-2xs">
       波形不可用
     </span>
   )

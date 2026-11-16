@@ -1,15 +1,14 @@
+// SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
 import { LibraryDetail } from '@renderer/components/library-detail'
 import { useLibrary } from '@renderer/lib/hooks'
-import { Badge } from '@vs/ui/components/badge'
-import { Button } from '@vs/ui/components/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@vs/ui/components/card'
 import { cn, formatBytes, formatRelative } from '@vs/ui/lib/utils'
-import { FolderClock, RefreshCw, Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
 /**
  * 产物库：直接扫 分离输出/ 的目录树。
- * 和任务列表不同，这里不依赖内存状态，重启后端也还在。
+ * 和任务列表不同，这里不依赖内存状态，重启应用也还在。
+ *
+ * 两列：左边 iOS 的分组列表（每行一个目录），右边是选中目录的产物。
  */
 export function LibraryPage() {
   const { entries, error, loading, refresh } = useLibrary()
@@ -25,81 +24,81 @@ export function LibraryPage() {
   const current = selected ?? filtered[0]?.dir ?? null
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)]">
-      <Card className="h-fit">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FolderClock className="text-primary size-4" />
-            产物库
-            <Badge variant="secondary">{entries.length}</Badge>
-            <Button
-              size="icon-sm"
-              variant="ghost"
-              className="ml-auto"
+    <div className="window-in">
+      <div className="mb-6 px-1">
+        <h1 className="text-title1">产物库</h1>
+        <p className="text-muted-foreground mt-1.5 max-w-[52ch] text-footnote leading-relaxed">
+          分离输出/ 里的每一条结果。重启应用也还在。
+        </p>
+      </div>
+
+      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)]">
+        <section>
+          <div className="group-label mb-2 flex items-baseline gap-2 px-4">
+            <span>{entries.length} 个目录</span>
+            <button
+              type="button"
+              className="text-tint ml-auto font-normal"
               onClick={() => void refresh()}
-              title="重新扫描 分离输出/"
+              disabled={loading}
             >
-              <RefreshCw className={cn('size-3.5', loading && 'animate-spin')} />
-            </Button>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <div className="relative">
-            <Search className="text-muted-foreground absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2" />
+              {loading ? '扫描中…' : '重新扫描'}
+            </button>
+          </div>
+
+          <div className="glass border-white/10 rounded-[18px] border p-3">
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="按目录名筛选"
-              className="border-border/70 bg-background/60 placeholder:text-muted-foreground/60 focus:border-primary/50 h-8 w-full rounded-md border pr-2.5 pl-8 text-[12px] outline-none transition-colors"
+              aria-label="按目录名筛选"
+              className="well placeholder:text-muted-foreground/50 focus:ring-tint/50 mb-3 h-8 w-full rounded-[10px] px-3 text-caption outline-none focus:ring-2"
             />
-          </div>
 
-          {error && <p className="text-destructive text-[11.5px]">{error}</p>}
+            {error && <p className="text-destructive px-1 pb-2 text-caption2">{error}</p>}
 
-          <div className="max-h-[calc(100vh-260px)] space-y-0.5 overflow-y-auto pr-0.5">
-            {filtered.length === 0 && !loading && (
-              <p className="text-muted-foreground py-6 text-center text-[11.5px]">
-                没有匹配的产物目录
-              </p>
-            )}
-            {filtered.map((e) => (
-              <button
-                key={e.dir}
-                type="button"
-                onClick={() => setSelected(e.dir)}
-                className={cn(
-                  'w-full rounded-md px-2 py-1.5 text-left transition-colors',
-                  current === e.dir ? 'bg-secondary/80' : 'hover:bg-secondary/45',
-                )}
-              >
-                <p className="truncate text-[12px]" title={e.name}>
-                  {e.name}
+            <div className="max-h-[calc(100vh-300px)] space-y-1 overflow-y-auto">
+              {filtered.length === 0 && !loading && (
+                <p className="text-muted-foreground/60 px-1 py-4 text-caption">
+                  {entries.length === 0 ? '分离输出/ 还是空的。' : '没有匹配的目录。'}
                 </p>
-                <p className="text-muted-foreground/70 mt-0.5 flex items-center gap-1.5 text-[10px]">
-                  <span>{formatRelative(e.mtime)}</span>
-                  <span className="opacity-50">·</span>
-                  <span>{e.count} 轨</span>
-                  <span className="opacity-50">·</span>
-                  <span className="font-mono">{formatBytes(e.size)}</span>
-                </p>
-              </button>
-            ))}
+              )}
+              {filtered.map((e) => (
+                <button
+                  key={e.dir}
+                  type="button"
+                  onClick={() => setSelected(e.dir)}
+                  aria-current={current === e.dir}
+                  className={cn(
+                    'pressable block w-full rounded-[12px] px-3 py-2 text-left transition-colors',
+                    current === e.dir ? 'bg-white/14' : 'hover:bg-white/7',
+                  )}
+                >
+                  <span className="block truncate text-footnote" title={e.name}>
+                    {e.name}
+                  </span>
+                  <span className="readout text-muted-foreground/70 mt-0.5 flex items-center gap-2">
+                    {formatRelative(e.mtime)}
+                    <span className="opacity-40">·</span>
+                    {e.count} 轨<span className="opacity-40">·</span>
+                    {formatBytes(e.size)}
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
-        </CardContent>
-      </Card>
+        </section>
 
-      <Card>
-        <CardContent className="pt-1">
+        <section className="min-w-0">
           {current ? (
             <LibraryDetail key={current} dir={current} />
           ) : (
-            <div className="flex flex-col items-center gap-2 py-16 text-center">
-              <FolderClock className="text-muted-foreground/40 size-6" />
-              <p className="text-muted-foreground text-[12.5px]">分离输出/ 里还没有可播放的产物</p>
-            </div>
+            <p className="text-muted-foreground/60 px-1 text-caption">
+              左边选一个目录，或者先去分离台跑一首。
+            </p>
           )}
-        </CardContent>
-      </Card>
+        </section>
+      </div>
     </div>
   )
 }

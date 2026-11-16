@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
 'use client'
 
 import * as LabelPrimitive from '@radix-ui/react-label'
@@ -9,7 +10,7 @@ function Label({ className, ...props }: React.ComponentProps<typeof LabelPrimiti
     <LabelPrimitive.Root
       data-slot="label"
       className={cn(
-        'flex items-center gap-2 text-[13px] leading-none font-medium select-none text-foreground/90',
+        'flex items-center gap-2 text-footnote leading-none font-medium text-foreground/92 select-none',
         className,
       )}
       {...props}

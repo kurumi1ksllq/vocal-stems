@@ -1,14 +1,16 @@
+// SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
 import { JobHeader } from '@renderer/components/job-header'
 import { LogStream } from '@renderer/components/log-stream'
 import { StemGrid, StemGridSkeleton } from '@renderer/components/stem-grid'
 import type { Job } from '@renderer/lib/api'
 import { useJobResult } from '@renderer/lib/use-job-result'
-import { AlertCircle, Loader2 } from 'lucide-react'
+import { useJobStage } from '@renderer/lib/use-job-stage'
+import { cn } from '@vs/ui/lib/utils'
 import { useEffect, useMemo, useState } from 'react'
 
 /**
- * 任务进行中 / 完成后的详情。
- * 页面的「现在发生了什么」全部收在这一个组件里。
+ * 任务的详情区：状态在上面，产物在中间，日志收在底部。
+ * 「现在发生了什么」全部收在这一个组件里。
  */
 export function JobPanel({ job, onCancel }: { job: Job; onCancel?: () => void }) {
   const running = job.status === 'running' || job.status === 'queued'
@@ -24,33 +26,38 @@ export function JobPanel({ job, onCancel }: { job: Job; onCancel?: () => void })
   const body = useMemo(() => {
     if (running) return <RunningBody job={job} />
     if (job.status === 'failed') return <FailedBody job={job} />
-    if (job.status === 'cancelled') return <CancelledBody />
+    if (job.status === 'cancelled') return <Notice>任务已取消，没有产物。</Notice>
+    if (job.status === 'interrupted')
+      return (
+        <Notice tone="warn">上次运行被中断（应用退出或崩溃），没有跑完。重新提交一次就行。</Notice>
+      )
     if (loading) return <StemGridSkeleton />
     if (error)
       return (
-        <div className="text-muted-foreground flex items-center gap-2 py-6 text-[12.5px]">
-          <AlertCircle className="size-3.5" />
+        <Notice tone="warn">
           {error}
-        </div>
+          <br />
+          目录不在了就把这条任务删掉，重跑一次。
+        </Notice>
       )
-    if (!result) return <p className="text-muted-foreground py-6 text-[12.5px]">没有找到产物目录</p>
+    if (!result) return <Notice>这个任务没有产物目录。</Notice>
     return <StemGrid result={result} />
   }, [job, running, loading, error, result])
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <JobHeader job={job} onCancel={onCancel} />
 
-      {body}
+      <div className="sheet-up">{body}</div>
 
       {(running || job.status === 'failed') && (
-        <div className="space-y-2">
+        <div className="space-y-2 border-t border-white/8 pt-3">
           <button
             type="button"
             onClick={() => setShowLog((v) => !v)}
-            className="text-muted-foreground hover:text-foreground text-[11.5px] transition-colors"
+            className="text-tint text-caption"
           >
-            {showLog ? '收起日志' : '查看日志'}
+            {showLog ? '收起运行日志' : '查看运行日志'}
           </button>
           {showLog && <LogStream jobId={job.id} active={running} />}
         </div>
@@ -59,55 +66,99 @@ export function JobPanel({ job, onCancel }: { job: Job; onCancel?: () => void })
   )
 }
 
+/**
+ * 运行中。日志里有真实的阶段标记，所以这四步是真的在动，
+ * 不是按耗时猜出来的假进度。
+ */
 function RunningBody({ job }: { job: Job }) {
-  const steps = ['规范化', '模型推理', '融合', '导出 mp3']
+  const { stage, stages } = useJobStage(job)
+
   return (
-    <div className="rounded-xl border border-border/60 bg-card/40 p-4">
-      <div className="mb-3 flex items-center gap-2">
-        <Loader2 className="text-primary size-4 animate-spin" />
-        <span className="text-[13px] font-medium">处理中</span>
-        <span className="text-muted-foreground ml-auto font-mono text-[11px] tabular-nums">
-          {job.elapsed.toFixed(0)}s
-        </span>
+    <div className="well rounded-[16px] px-4 py-3">
+      <div className="flex items-baseline gap-2">
+        <Meters />
+        <span className="text-footnote font-medium">处理中</span>
+        <span className="readout text-muted-foreground ml-auto">{job.elapsed.toFixed(0)} 秒</span>
       </div>
-      <div className="space-y-1.5">
-        {steps.map((s, i) => (
-          <div key={s} className="text-muted-foreground flex items-center gap-2 text-[11.5px]">
-            <span className="bg-secondary size-1 rounded-full" />
-            <span className={i === 0 ? 'text-foreground/80' : ''}>{s}</span>
-          </div>
-        ))}
-      </div>
-      <p className="text-muted-foreground/60 mt-3 text-[10.5px]">
-        单个模型约 40–90 秒，级联会叠加。别关这个页面，任务在后端继续跑。
+
+      <ol className="mt-3 space-y-1.5">
+        {stages.map((s, i) => {
+          const done = stage >= 0 && i < stage
+          const now = i === stage
+          return (
+            <li
+              key={s}
+              className={cn(
+                'flex items-center gap-2.5 text-caption',
+                now
+                  ? 'text-foreground'
+                  : done
+                    ? 'text-muted-foreground/80'
+                    : 'text-muted-foreground/45',
+              )}
+            >
+              <span
+                className={cn(
+                  'size-1.5 shrink-0 rounded-full',
+                  now ? 'bg-signal' : done ? 'bg-[#30d158]' : 'bg-white/15',
+                )}
+                aria-hidden
+              />
+              {s}
+            </li>
+          )
+        })}
+      </ol>
+
+      <p className="text-muted-foreground/65 mt-3 text-caption2 leading-relaxed">
+        单个模型约 40–90 秒，级联会叠加。可以切到别的页面，任务不会停。
       </p>
     </div>
+  )
+}
+
+function Meters() {
+  return (
+    <span className="flex h-3 shrink-0 items-end gap-px" aria-hidden>
+      {[0, 1, 2, 3].map((i) => (
+        <span
+          key={i}
+          className="bg-signal h-full w-[2px] rounded-full"
+          style={{ animation: `meter 1.1s ease-in-out ${i * 0.14}s infinite` }}
+        />
+      ))}
+    </span>
   )
 }
 
 function FailedBody({ job }: { job: Job }) {
   return (
-    <div className="rounded-xl border border-destructive/40 bg-destructive/5 p-4">
-      <div className="mb-2 flex items-center gap-2">
-        <AlertCircle className="text-destructive size-4" />
-        <span className="text-destructive text-[13px] font-medium">分离失败</span>
+    <div className="rounded-[16px] border border-destructive/30 bg-destructive/8 px-4 py-3">
+      <div className="flex items-center gap-2">
+        <span className="bg-destructive size-2 rounded-full" aria-hidden />
+        <span className="text-destructive text-footnote font-medium">分离失败</span>
       </div>
       {job.error && (
-        <pre className="text-muted-foreground overflow-x-auto font-mono text-[11px] leading-relaxed whitespace-pre-wrap">
+        <pre className="text-muted-foreground mt-2 overflow-x-auto font-mono text-caption2 leading-relaxed whitespace-pre-wrap">
           {job.error}
         </pre>
       )}
-      <p className="text-muted-foreground/70 mt-2 text-[10.5px]">
-        常见原因：权重缺失、显存不足（把并行降到 1）、ffmpeg 路径失效。
+      <p className="text-muted-foreground/70 mt-2 text-caption2 leading-relaxed">
+        多数是这三种：权重没放齐、显存不够（把并行降到 1）、ffmpeg 路径失效。
       </p>
     </div>
   )
 }
 
-function CancelledBody() {
+function Notice({ children, tone }: { children: React.ReactNode; tone?: 'warn' }) {
   return (
-    <div className="text-muted-foreground rounded-xl border border-border/60 bg-card/30 p-4 text-[12.5px]">
-      任务已取消。
-    </div>
+    <p
+      className={cn(
+        'well text-muted-foreground rounded-[16px] px-4 py-3 text-caption',
+        tone === 'warn' && 'text-signal',
+      )}
+    >
+      {children}
+    </p>
   )
 }

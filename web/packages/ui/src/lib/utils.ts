@@ -1,5 +1,23 @@
+// SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
 import { type ClassValue, clsx } from 'clsx'
-import { twMerge } from 'tailwind-merge'
+import { extendTailwindMerge } from 'tailwind-merge'
+
+/**
+ * tailwind-merge 不认识我们自定义的字号（text-caption 之类），
+ * 会把 `text-caption` 当成颜色类，跟同一元素上的 `text-primary-foreground`
+ * 判成冲突，然后丢掉后者——结果就是白底按钮上出现白字。
+ *
+ * 这里把自定义字号显式登记进 font-size 组，冲突判定才对。
+ */
+const twMerge = extendTailwindMerge({
+  extend: {
+    classGroups: {
+      'font-size': [
+        { text: ['caption2', 'caption', 'footnote', 'subhead', 'body', 'title3', 'title1'] },
+      ],
+    },
+  },
+})
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
