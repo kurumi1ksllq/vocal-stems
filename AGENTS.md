@@ -10,7 +10,7 @@ ZFTurbo/MSST(Music-Source-Separation-Training)的本地改造版：训练/推理
 
 | 链路 | 入口 | 用途 | 是否本地原创 |
 |---|---|---|---|
-| 干声分离（实际在用） | `svc_stems.py` / `svc_karaoke.py` / `svc_dereverb.py` + `svc_common.py` | 拖拽或命令行出人声/伴奏/主唱/和声/去混响 | 是，PolyForm Strict |
+| 干声分离（实际在用） | `svc/svc_stems.py` / `svc/svc_karaoke.py` / `svc/svc_dereverb.py` + `svc/svc_common.py` | 拖拽或命令行出人声/伴奏/主唱/和声/去混响 | 是，PolyForm Strict |
 | 上游训练框架 | `train.py` / `train_ddp.py` / `train_accelerate.py` / `valid.py` / `inference.py` / `ensemble.py` | 训练、验证、单模型推理、融合 | 否，MIT，只在两处有本地补丁 |
 
 `inference.py` / `ensemble.py` 是上游文件，但被本地**改过**（见 §5）。改它们前先确认改的是本地补丁还是上游逻辑。
@@ -24,15 +24,20 @@ ZFTurbo/MSST(Music-Source-Separation-Training)的本地改造版：训练/推理
 - **没有 pytest、没有 CI**。`tests/` 是上游的“配置自检”脚本，不是单测套件。
 - `gui/gui-wx.py` 跑不了：wxPython 未安装，且该脚本不在根目录（上游 docs 写的是 `python gui-wx.py`，路径已过期）。
 
-### ffmpeg 是硬编码的绝对路径
+### ffmpeg 查找顺序
 
-`svc_common.py:32`:
+`svc/svc_common.py` 里按三级回退：
 
 ```python
-FFMPEG = r"C:\Users\admin\ffmpeg\ffmpeg-master-latest-win64-gpl\bin\ffmpeg.exe"
+_bundled = os.path.join(MSST, "bin", "ffmpeg.exe")      # ① 仓库/运行时里捆绑的
+FFMPEG = os.environ.get("VS_FFMPEG") or (
+    _bundled if os.path.exists(_bundled)
+    else r"C:\Users\admin\ffmpeg\...\bin\ffmpeg.exe"    # ② 本机硬编码兜底
+)
 ```
 
-这台机器上存在；换机/换用户名就会全线失败（响度规范化、截断、mp3 导出都靠它）。改动机器时这是第一处要改的地方。
+`bin/ffmpeg.exe` 现在还不存在（打包时才由 `prepare-runtime.mjs` 放进去），所以日常走硬编码那条。
+换机器时优先设 `VS_FFMPEG`，别去改硬编码。
 
 ### 模型权重不入库
 
@@ -40,21 +45,21 @@ FFMPEG = r"C:\Users\admin\ffmpeg\ffmpeg-master-latest-win64-gpl\bin\ffmpeg.exe"
 
 | 脚本 | `models/` 下权重 |
 |---|---|
-| `svc_stems.py` | `model_melband_kj_fp16.ckpt`、`mel_band_roformer_vocals_gabox_fp16.ckpt` |
-| `svc_karaoke.py` | `karaoke_bs_roformer_anvuew_fp16.ckpt`、`mel_band_roformer_karaoke_gabox_fp16.ckpt` |
-| `svc_dereverb.py` | `dereverb_bs_roformer_anvuew_sdr_22.5050_fp16.ckpt` |
+| `svc/svc_stems.py` | `model_melband_kj_fp16.ckpt`、`mel_band_roformer_vocals_gabox_fp16.ckpt` |
+| `svc/svc_karaoke.py` | `karaoke_bs_roformer_anvuew_fp16.ckpt`、`mel_band_roformer_karaoke_gabox_fp16.ckpt` |
+| `svc/svc_dereverb.py` | `dereverb_bs_roformer_anvuew_sdr_22.5050_fp16.ckpt` |
 
 ## 3. 三件套怎么跑
 
 ```bash
-.venv/Scripts/python.exe svc_stems.py     整曲.wav              # 人声(含和声) + 伴奏
-.venv/Scripts/python.exe svc_karaoke.py   人声.wav              # 纯主唱 + 和声
-.venv/Scripts/python.exe svc_dereverb.py  纯主唱.wav            # 干声 + 混响成分
+.venv/Scripts/python.exe svc/svc_stems.py     整曲.wav              # 人声(含和声) + 伴奏
+.venv/Scripts/python.exe svc/svc_karaoke.py   人声.wav              # 纯主唱 + 和声
+.venv/Scripts/python.exe svc/svc_dereverb.py  纯主唱.wav            # 干声 + 混响成分
 
 # 级联（输入给整曲）
-.venv/Scripts/python.exe svc_karaoke.py   整曲.wav --from-mix
-.venv/Scripts/python.exe svc_dereverb.py  整曲.wav --from-vocals
-.venv/Scripts/python.exe svc_dereverb.py  整曲.wav --from-karaoke
+.venv/Scripts/python.exe svc/svc_karaoke.py   整曲.wav --from-mix
+.venv/Scripts/python.exe svc/svc_dereverb.py  整曲.wav --from-vocals
+.venv/Scripts/python.exe svc/svc_dereverb.py  整曲.wav --from-karaoke
 ```
 
 - 输入既可以是**单个文件**也可以是**目录**（`svc_common.list_dir_input`，扩展名白名单 `AUDIO_EXT`）。
@@ -64,9 +69,9 @@ FFMPEG = r"C:\Users\admin\ffmpeg\ffmpeg-master-latest-win64-gpl\bin\ffmpeg.exe"
 
 ### 拖拽 bat
 
-`svc_去伴奏_拖拽.bat` / `svc_去和声_拖拽.bat` / `svc_去混响_拖拽.bat` / `分离干声_拖拽.bat`。
+都在 [`拖拽启动/`](拖拽启动/) 目录：`svc_去伴奏_拖拽.bat` / `svc_去和声_拖拽.bat` / `svc_去混响_拖拽.bat` / `分离干声_单模型_拖拽.bat`。
 
-四个 bat 全部用 `%~dp0` 定位仓库根，**不含任何绝对路径**，换目录/换机器/改仓库名都不用动。约定：
+因为挪进了一层子目录，`ROOT` 不再是 `%~dp0` 而是 `%~dp0..\`（指向仓库根）。除这一行外其余约定不变：
 
 - 编码 **GBK**（`.gitattributes` 规定 `*.bat` 必须 CRLF）。用 UTF-8 重写会让 cmd 里中文全变乱码。
 - 第二行必须是 `chcp 936 >nul`。不钉代码页时，`%~dp0` + 中文字面量（如 `%ROOT%分离输出`）在非 936 控制台下会被展开成 U+FFFD 替换符，直接建出 `�������` 这种垃圾目录。
@@ -112,72 +117,107 @@ FFMPEG = r"C:\Users\admin\ffmpeg\ffmpeg-master-latest-win64-gpl\bin\ffmpeg.exe"
 
 `ensemble.py` 的 `--type` 在 CLI 里没有 `choices` 限制，传错值会一路跑到 `average_waveforms` 返回 `None`。
 
-## 6. Web 前端（`web/`）
+## 6. Web 桌面版（`web/`）
 
-React 19 + TypeScript + Vite + Tailwind v4 + shadcn/ui（源码形式）+ FastAPI 后端。
-**它不实现任何分离逻辑**，只是 `subprocess` 调 `svc_*.py` 并展示产物。
+pnpm monorepo，三条链路：**React 渲染进程 → (IPC) → Node 主进程 Hono → (subprocess) → Python**。
+**不实现任何分离逻辑**，只是编排与展示。
+
+```
+web/apps/desktop      主进程 + preload + 渲染进程
+web/packages/shared   Hono 路由 + Drizzle schema + IPC 契约（类型来源）
+web/packages/ui       shadcn 组件 + Ladle 工作台
+```
 
 ```bash
 cd web
-pnpm server   # 后端 :8765（scripts/run-server.mjs 自动找 .venv）
-pnpm dev      # 前端 :5178，/api 代理到 8765
-pnpm build    # 产物进 web/dist/，之后 pnpm server 单进程托管
+pnpm dev             # Vite + Electron 热更新
+pnpm build           # tsc + vite
+pnpm test            # vitest（34 个用例）
+pnpm e2e             # Playwright（先 pnpm dist:dir）
+pnpm verify          # biome ci + 三包 typecheck
+pnpm prepare:runtime # 组装 runtime/（Python + 权重 + ffmpeg，6.5 GB）
+pnpm dist            # release/干声分离台-<v>-x64.zip
 ```
 
-依赖装在**项目 .venv** 里（`uv pip install --python .venv\Scripts\python.exe fastapi "uvicorn[standard]" python-multipart`），
-不是系统 Python。
+**没有 HTTP 后端了。** 旧版 FastAPI + uvicorn 已删除，端口也不再监听。
 
-### 四个必须知道的坑
+### 数据流
 
-1. **`ROOT` 不能算成 `web/`。** `app.py` 里是三级：`SERVER_DIR`(web/server) → `WEB_DIR`(web) → `ROOT`(仓库根)。算错会得到 `venvReady=false`、`weights=[]`，产物写进 `web/分离输出/`。
-2. **产物目录按 job_id 认领。** `svc_*.py` 用 `<时间戳>_<输入文件名>_<标签>` 命名，上传文件叫 `<job_id>.wav`，所以目录名必含 job_id。按「开始后最新目录」找会在并发时串目录。
-3. **`svc_*.py` 单文件失败仍返回 0。** 后端在退出码 0 时还要扫日志里的 `[失败]`，否则失败任务会被标成「已完成」。
-4. **根 `.gitignore` 的 `lib/` 和 `Scripts/` 会误伤前端。** `web/.gitignore` 末尾用 `!src/lib/**`、`!scripts/**` 收回。新增前端目录时注意这个坑。
+```
+window.vs.rpc({method, path, body})      preload 桥，渲染进程唯一出口
+  → ipcMain.handle('vs:rpc')             主进程，补 /api 前缀
+  → api.request()                        Hono 路由（类型来自 shared/callable）
+  → job-runner                           Drizzle + node:sqlite 持久化
+  → spawn svc/svc_*.py                   Python sidecar，纯 CLI 不监听端口
+```
 
-### 前端约定
+音频走 `vs-media://local/<encodeURIComponent(absPath)>`，支持 Range。
 
-- Tailwind v4 **没有 `tailwind.config.ts`**，主题全在 `src/index.css` 的 `@theme inline` 里。
-- `src/lib/modes.tsx` 必须是 `.tsx`（含 JSX）。
-- 同一时刻只允许一条轨播放，`StemPlayer` 受控于父组件 `playingUrl`。
-- 日志走 SSE（`/api/jobs/{id}/stream`），不要改回轮询。
-- 任务表只在内存，后端重启后清空；产物在 `分离输出/`，产物库仍能看到。
+### 纪律（改代码前必读）
+
+1. **渲染进程不碰 Node** —— 只有 `window.vs`，没有 fs/path/ipcRenderer。
+2. **数据库只在主进程** —— `node:sqlite` 的 `DatabaseSync` 不可跨进程传递。
+3. **Hono 路由类型放 `shared/callable`** —— 主进程实现，渲染进程只 `import type`。
+4. **preload 不 import electron-log** —— 渲染错误经 `reportError` → IPC → 主进程写日志 + 落库。
+5. **重活不阻塞主进程** —— PyTorch 在 Python 子进程；任务异步跑，状态进 SQLite。
+
+### 六个必须知道的坑
+
+1. **主进程产物必须是 `.cjs`。** `package.json` 有 `"type": "module"`，`.js` 会被 Electron 当 ESM，`require`/`__dirname` 全炸。
+2. **Vite 8 用 rolldown，`rollupOptions.output.format` 不生效。** 要写 `build.lib.formats: ['cjs']` 才真出 CJS。
+3. **Hono 不能用自定义 scheme 当 origin。** `new URL(path, 'vs-app://local')` 解析出的 pathname 不对，路由全 404；用 `http://localhost`。
+4. **迁移路径要数四层。** `__dirname` 是 `apps/desktop/dist-electron/main`，四层上溯才是 `web/`。
+5. **`app.setName('vocal-stems')`。** 否则 userData 会变成 `AppData/Roaming/@vs/desktop`（包名带 scope 和斜杠）。
+6. **根 `.gitignore` 曾吞掉整个 `scripts/`。** 上游 `lib/`、`Scripts/` 两条不带前导 `/`，会匹配任意层级；Windows 下 git 还不区分大小写，9 个上游脚本从未入库。现已锚定成 `/lib/` 并删掉 `Scripts/`。**新增顶层目录后跑一次 `git check-ignore -v <file>` 确认。**
 
 ### 代码规范：Biome 2（没有 ESLint / Prettier）
 
 ```bash
-cd web && pnpm check        # 只检查（CI / 提交前）
-pnpm check:fix              # 检查 + 自动修复（格式化、import 排序、安全修复）
-pnpm verify                 # biome check + tsc -b
+pnpm check       # 只检查
+pnpm check:fix   # 检查 + 自动修复（格式化、import 排序）
+pnpm verify      # biome ci + typecheck
+pnpm test        # vitest
 ```
 
-- 配置在 `web/biome.json`。缩进 2 空格、行宽 100、LF、单引号、无分号、trailing comma。
-- **import 排序由 `assist.source.organizeImports` 负责**，`check --write` 时才生效；`biome lint` 不会排序。
-- `server/**` 被排除在格式化/Lint 之外（那是 Python），`src/components/ui/**` 放宽了 a11y 和 `any`（shadcn 原样代码）。
-- `noExplicitAny`、`useExhaustiveDependencies` 是 warn 级：后者对“用 state 当 effect 触发信号”的写法会误报，`log-stream.tsx` 里已用 `biome-ignore` 标注原因。
-- **改完前端必须跑 `pnpm verify`**，Biome 只查风格和明显缺陷，类型错误靠 `tsc -b` 兜。
+- 配置在 `web/biome.json`，**精确锁 2.6.8**。缩进 2 空格、行宽 100、单引号、无分号。
+- import 排序由 `assist.source.organizeImports` 负责，`check --write` 时才生效。
+- `runtime/`、`release/`、`dist*/`、`drizzle/` 都在 `files.includes` 里排除。
+- 测试文件允许 `noExplicitAny`；整体 `noNonNullAssertion` 是 warn（测试里 `xxx!` 难免）。
+- **biome ci 会检查格式化**，改了 yaml/md 后要 `pnpm format`。
 
 ### `pnpm-workspace.yaml` 不能删
 
-它不是 workspace（`packages` 只有 `"."`），而是 **pnpm v11 的配置落点**：v11 起不再读 `package.json` 的 `pnpm` 字段，`onlyBuiltDependencies` 等旧键也已废弃。当前内容是：
+pnpm v11 的配置落点（v11 起不读 `package.json` 的 `pnpm` 字段）。`allowBuilds` 必须放行：
+`esbuild`、`electron`、`electron-winstaller`、`lefthook`、`@biomejs/biome`、`@swc/core`、`msw`。
+少一个就每次 `pnpm <命令>` 报 `ERR_PNPM_IGNORED_BUILDS`。
 
-```yaml
-packages:
-  - "."
-
-allowBuilds:
-  esbuild: true
-```
-
-esbuild 是 vite 的构建依赖，必须允许它跑 postinstall，否则每次 `pnpm <命令>` 都报 `ERR_PNPM_IGNORED_BUILDS`。注意 Biome 会格式化这个 yaml，`- "."` 必须保持双引号（`biome check` 会把它从单引号改回来）。
+另外**脚本名不能叫 `runtime`** —— pnpm 有同名内建子命令会抢走，用 `prepare:runtime`。
 
 ## 7. 测试与验证
 
-没有自动化测试。改完按这个顺序验：
+**Python 侧没有自动化测试**（`tests/` 是上游的配置自检脚本，通常跑不通）。
+**前端有**：`web/` 下 34 个 vitest 用例 + 8 个 Playwright E2E。
 
-1. 语法/参数：`.venv/Scripts/python.exe svc_stems.py --help`（三个脚本都应有完整 options 输出）。
-2. 冒烟：拿 `test_input/When_You_Wish_Upon_a_Star.mp3` 跑一遍，检查输出目录里需要的 stem 是否齐全（`collect_inference` 会校验 `need`，缺了会抛 `RuntimeError`）。
-3. 融合：单独跑 `.venv/Scripts/python.exe ensemble.py --files a.wav b.wav --type mag_median_fft --output out.wav`，听/测高频段是否被削。
-4. 训练链路回退验证用 `tests/admin_test.py`（配置加载/权重匹配的粗检），但它依赖数据集路径，通常跑不通，别把它当回归测试。
+### Python / 三件套
+
+1. 语法：`.venv/Scripts/python.exe svc/svc_stems.py --help`（三个脚本都要有完整 options）
+2. 冒烟：`test_input/When_You_Wish_Upon_a_Star.mp3` 跑一遍，`collect_inference` 会校验 `need`，缺 stem 抛 `RuntimeError`
+3. 融合：`ensemble.py --files a.wav b.wav --type mag_median_fft --output out.wav`，测高频段是否被削
+4. 训练链路：`tests/admin_test.py`（依赖数据集路径，别当回归测试）
+
+### 前端 / 桌面
+
+```bash
+cd web
+pnpm verify   # biome ci + 三包 tsc --noEmit
+pnpm test     # vitest：路由契约 24 个 + sidecar 进程 10 个
+pnpm e2e      # Playwright：6 个快检（起真 Electron，验窗口/preload/RPC）
+VS_E2E_REAL_JOB=1 pnpm e2e   # 加 2 个真实推理用例（约 2 分钟）
+```
+
+E2E 需要先 `pnpm build && pnpm dist:dir`，它跑的是 `release/win-unpacked` 里的真应用。
+
+**改完前端必须跑 `pnpm verify`** —— Biome 查风格，`tsc` 查类型，两者都不能省。
 
 ## 8. 仓库卫生
 

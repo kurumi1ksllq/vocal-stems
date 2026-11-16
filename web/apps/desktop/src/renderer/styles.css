@@ -1,0 +1,144 @@
+@import "tailwindcss";
+@import "@vs/ui/styles.css";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --radius: 0.75rem;
+
+  --background: #0a0c10;
+  --foreground: #e8eaf0;
+  --card: #10131a;
+  --card-foreground: #e8eaf0;
+  --popover: #141821;
+  --popover-foreground: #e8eaf0;
+  --primary: #f0a44a;
+  --primary-foreground: #1a1206;
+  --secondary: #1a1f2b;
+  --secondary-foreground: #d6dae4;
+  --muted: #161a23;
+  --muted-foreground: #8891a3;
+  --accent: #1b2230;
+  --accent-foreground: #e8eaf0;
+  --destructive: #e5484d;
+  --destructive-foreground: #fff;
+  --border: #232936;
+  --input: #232936;
+  --ring: #f0a44a;
+
+  --stem-vocal: #f0a44a;
+  --stem-backing: #a78bfa;
+  --stem-inst: #4cc9d4;
+  --stem-reverb: #94a3b8;
+}
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-stem-vocal: var(--stem-vocal);
+  --color-stem-backing: var(--stem-backing);
+  --color-stem-inst: var(--stem-inst);
+  --color-stem-reverb: var(--stem-reverb);
+
+  --font-sans:
+    "Segoe UI", "Microsoft YaHei UI", "PingFang SC", "Hiragino Sans GB", system-ui, sans-serif;
+  --font-mono: "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    background-image:
+      radial-gradient(circle at 15% -10%, rgba(240, 164, 74, 0.07), transparent 45%),
+      radial-gradient(circle at 85% 0%, rgba(76, 201, 212, 0.06), transparent 40%);
+    background-attachment: fixed;
+  }
+
+  ::selection {
+    background: rgba(240, 164, 74, 0.28);
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #232936;
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #37404f;
+    background-clip: content-box;
+  }
+}
+
+@layer utilities {
+  @keyframes pulse-ring {
+    0% {
+      box-shadow: 0 0 0 0 rgba(240, 164, 74, 0.45);
+    }
+    70% {
+      box-shadow: 0 0 0 8px rgba(240, 164, 74, 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(240, 164, 74, 0);
+    }
+  }
+
+  .animate-pulse-ring {
+    animation: pulse-ring 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-fade-up {
+    animation: fade-up 0.28s ease-out both;
+  }
+}

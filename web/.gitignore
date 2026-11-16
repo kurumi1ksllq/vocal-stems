@@ -1,25 +1,23 @@
 node_modules/
 dist/
-dist-ssr/
+build/
+release/
+story-static/
+*.tsbuildinfo
 *.local
 .vite/
-uploads/
-__pycache__/
-*.py[cod]
-server/jobs.json
-*.log
 .DS_Store
 
-# TypeScript 增量构建信息
-*.tsbuildinfo
+# 运行时数据：数据库、日志、上传、Python 运行时副本
+data/
+uploads/
+logs/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
 
-# 桌面打包产物：runtime 约 6.6 GB，绝不能进仓库
-build/runtime/
-release/
-
-# 仓库根 .gitignore 里有 Python 打包用的 `lib/` 和 `Scripts/` 规则，
-# 会误伤前端的 src/lib/ 和 scripts/。这里显式收回。
-!src/lib/
-!src/lib/**
-!scripts/
-!scripts/**
+# 打包用的 Python 运行时（pnpm dist 时生成）
+runtime/
+# 构建产物：主进程/preload 的 CJS bundle
+dist-electron/

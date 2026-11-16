@@ -11,9 +11,12 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
-Lib/site-packages/
-lib64/
+# 下面三条原本写作 lib/  Lib/site-packages/  Scripts/（不带前导斜杠），
+# 会连带忽略任何层级的同名目录 —— 上游的 scripts/ 就这么被吞了，
+# 9 个文件从来没进过仓库。加前导 / 锚定到仓库根，让你真要建 lib/ 时仍然生效。
+/lib/
+/Lib/site-packages/
+/lib64/
 parts/
 sdist/
 var/
@@ -61,14 +64,16 @@ ipython_config.py
 
 # Environments
 .env
-.venv
+.venv/
 env/
 venv/
 ENV/
 env.bak/
 venv.bak/
 pyvenv.cfg
-Scripts/
+# 注意：原本这里有一行 `Scripts/`，本意是忽略 venv 里的 Scripts 目录，
+# 但 Windows 下 git 的路径匹配不区分大小写，它把上游的 scripts/ 整个吞掉了，
+# 9 个脚本从来没进过仓库。venv 的 Scripts 已被上面的 .venv/ 覆盖，这行直接删掉。
 
 *.code-workspace
 

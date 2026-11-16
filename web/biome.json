@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.6.7/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.6.8/schema.json",
   "vcs": {
     "enabled": true,
     "clientKind": "git",
@@ -9,12 +9,17 @@
   "files": {
     "includes": [
       "**",
-      "!**/dist",
       "!**/node_modules",
-      "!**/uploads",
+      "!**/dist",
+      "!**/dist-electron",
+      "!**/build",
+      "!**/release",
+      "!**/story-static",
+      "!**/test-results",
+      "!**/playwright-report",
       "!**/*.tsbuildinfo",
-      "!**/build/runtime",
-      "!**/release"
+      "!**/drizzle",
+      "!runtime"
     ]
   },
   "formatter": {
@@ -30,24 +35,11 @@
       "jsxQuoteStyle": "double",
       "semicolons": "asNeeded",
       "trailingCommas": "all",
-      "arrowParentheses": "always",
-      "bracketSpacing": true
-    }
-  },
-  "json": {
-    "formatter": {
-      "enabled": true,
-      "indentWidth": 2
+      "arrowParentheses": "always"
     }
   },
   "css": {
-    "formatter": {
-      "enabled": true,
-      "quoteStyle": "double"
-    },
     "parser": {
-      "cssModules": false,
-      "allowWrongLineComments": false,
       "tailwindDirectives": true
     }
   },
@@ -66,49 +58,40 @@
       "correctness": {
         "noUnusedImports": "error",
         "noUnusedVariables": "error",
-        "useExhaustiveDependencies": "warn",
         "useHookAtTopLevel": "error"
-      },
-      "suspicious": {
-        "noExplicitAny": "warn",
-        "noArrayIndexKey": "warn",
-        "useIterableCallbackReturn": "off"
       },
       "style": {
         "useConst": "error",
-        "useTemplate": "warn",
-        "noNonNullAssertion": "warn",
         "useImportType": "error",
-        "useNodejsImportProtocol": "error"
+        "useNodejsImportProtocol": "error",
+        "noNonNullAssertion": "warn"
       },
-      "a11y": {
-        "useKeyWithClickEvents": "warn",
-        "noLabelWithoutControl": "warn"
-      },
-      "complexity": {
-        "noBannedTypes": "warn",
-        "useOptionalChain": "warn"
+      "suspicious": {
+        "noExplicitAny": "warn",
+        "noArrayIndexKey": "warn"
       }
     }
   },
   "overrides": [
     {
-      "includes": ["src/components/ui/**"],
+      "includes": ["packages/ui/src/components/**"],
       "linter": {
         "rules": {
           "a11y": {
             "useKeyWithClickEvents": "off"
-          },
-          "suspicious": {
-            "noExplicitAny": "off"
           }
         }
       }
     },
     {
-      "includes": ["server/**"],
-      "formatter": { "enabled": false },
-      "linter": { "enabled": false }
+      "includes": ["**/*.test.ts", "**/*.test.tsx", "**/test/**", "**/*.stories.tsx"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noExplicitAny": "off"
+          }
+        }
+      }
     }
   ]
 }

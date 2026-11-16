@@ -1,49 +1,37 @@
 #!/usr/bin/env node
 /**
- * 组装打包用的完整运行目录 build/runtime/。
+ * 组装 Electron 打包所需的 Python 运行时 → web/runtime/
  *
- * 目标：build/runtime/ 就是一个能独立跑的「应用根」，打包后原样复制到
- * resources/runtime/，main.cjs 只要把 APP_ROOT 指过去即可，不需要再拼路径。
- *
- * 目录结构（与开发时的仓库布局保持一致）：
+ * 目标布局（与开发态仓库结构一致，主进程不需要区分自己跑在哪）：
  *   runtime/
- *     web/server/app.py       后端
- *     web/dist/               前端静态文件
- *     svc_stems.py ...        三件套
+ *     python/python.exe          独立 CPython
+ *     python/Lib/site-packages/  torch + 依赖
+ *     svc/                       三件套
  *     inference.py ensemble.py
- *     utils/                  inference 依赖
- *     models/                 权重 + 结构定义
- *     python/                 独立 Python 运行时
+ *     utils/                     inference 依赖
+ *     models/                    权重 + 结构
  *     bin/ffmpeg.exe
  *
- * 为什么不用 venv：venv 里的 python.exe 只是个壳，靠 pyvenv.cfg 指向开发机的
- * 绝对路径，复制到别的机器就废了。这里复制 uv 的 standalone CPython（自包含），
- * 再把已装好的 site-packages 合并进去。
+ * 为什么不用 .venv：venv 里的 python.exe 是个壳，靠 pyvenv.cfg 指向开发机的
+ * 绝对路径，复制到别的机器就废。这里复制 uv 的 standalone CPython（自包含），
+ * 再把已装好的 site-packages 合进去。
  *
- * 用法：node scripts/prepare-runtime.mjs [--skip-python] [--skip-models]
+ * 用法：node scripts/prepare-runtime.mjs [--skip-python] [--skip-models] [--skip-ffmpeg]
  */
 import { execFileSync } from 'node:child_process'
-import {
-  cpSync,
-  existsSync,
-  mkdirSync,
-  readdirSync,
-  readFileSync,
-  rmSync,
-  statSync,
-  writeFileSync,
-} from 'node:fs'
+import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const webDir = resolve(here, '..')
 const repoRoot = resolve(webDir, '..')
-const runtimeDir = join(webDir, 'build', 'runtime')
+const runtimeDir = join(webDir, 'runtime')
 
 const flags = new Set(process.argv.slice(2))
 const skipPython = flags.has('--skip-python')
 const skipModels = flags.has('--skip-models')
+const skipFfmpeg = flags.has('--skip-ffmpeg')
 
 const log = (m) => console.log(`[runtime] ${m}`)
 const mb = (n) => `${(n / 1024 / 1024).toFixed(0)} MB`
@@ -64,7 +52,9 @@ function dirSize(p) {
   return total
 }
 
-/** 读 .venv/pyvenv.cfg 拿到 base python 目录（uv 装的 standalone）。 */
+// ---------------------------------------------------------------- Python
+
+/** 读 .venv/pyvenv.cfg 的 home，拿到 uv 装的 standalone CPython 目录。 */
 function readBasePython() {
   const cfg = join(repoRoot, '.venv', 'pyvenv.cfg')
   if (!existsSync(cfg)) return null
@@ -72,11 +62,9 @@ function readBasePython() {
   return m ? m[1].trim() : null
 }
 
-// ---------------------------------------------------------------- Python
-
 function preparePython() {
   const base = readBasePython()
-  if (!base) throw new Error('读不到 .venv/pyvenv.cfg 的 home，无法定位 base python')
+  if (!base) throw new Error('读不到 .venv/pyvenv.cfg 的 home')
   if (!existsSync(join(base, 'python.exe'))) {
     throw new Error(`base python 不存在: ${join(base, 'python.exe')}`)
   }
@@ -86,7 +74,7 @@ function preparePython() {
   mkdirSync(dest, { recursive: true })
 
   log(`复制 base python: ${base}`)
-  // 只带运行时必需项；tcl / include / libs 对推理无用
+  // 只带运行时必需项；tcl/include/libs 对推理无用
   const wanted = [
     'python.exe',
     'python3.dll',
@@ -119,25 +107,59 @@ function preparePython() {
     rmSync(join(destSite, junk), { recursive: true, force: true })
   }
 
-  log(`python 运行时就绪: ${mb(dirSize(dest))}`)
+  // 顺手清 __pycache__，能省几百 MB
+  const before = dirSize(dest)
+  prunePycache(dest)
+  const after = dirSize(dest)
+  log(`python 运行时就绪: ${mb(after)}（清缓存省 ${mb(before - after)}）`)
+}
+
+function prunePycache(root) {
+  const stack = [root]
+  while (stack.length) {
+    const cur = stack.pop()
+    let entries
+    try {
+      entries = readdirSync(cur, { withFileTypes: true })
+    } catch {
+      continue
+    }
+    for (const e of entries) {
+      const full = join(cur, e.name)
+      if (!e.isDirectory()) continue
+      if (e.name === '__pycache__') {
+        rmSync(full, { recursive: true, force: true })
+        continue
+      }
+      stack.push(full)
+    }
+  }
 }
 
 // ---------------------------------------------------------------- 代码
 
 function prepareCode() {
-  // 三件套 + 上游推理文件
-  const pyFiles = [
+  // 上游推理文件放 runtime 根
+  for (const f of ['inference.py', 'ensemble.py']) {
+    const src = join(repoRoot, f)
+    if (!existsSync(src)) throw new Error(`缺少 ${f}`)
+    cpSync(src, join(runtimeDir, f))
+  }
+
+  // 三件套在 svc/，保持同样层级
+  const svcDst = join(runtimeDir, 'svc')
+  rmSync(svcDst, { recursive: true, force: true })
+  mkdirSync(svcDst, { recursive: true })
+  for (const f of [
+    '__init__.py',
     'svc_stems.py',
     'svc_karaoke.py',
     'svc_dereverb.py',
     'svc_common.py',
-    'inference.py',
-    'ensemble.py',
-  ]
-  for (const f of pyFiles) {
-    const src = join(repoRoot, f)
-    if (!existsSync(src)) throw new Error(`缺少 ${f}`)
-    cpSync(src, join(runtimeDir, f))
+  ]) {
+    const src = join(repoRoot, 'svc', f)
+    if (!existsSync(src)) throw new Error(`缺少 svc/${f}`)
+    cpSync(src, join(svcDst, f))
   }
 
   // utils/ 只带 .py
@@ -149,19 +171,7 @@ function prepareCode() {
     if (f.endsWith('.py')) cpSync(join(utilsSrc, f), join(utilsDst, f))
   }
 
-  // web/：后端 + 前端构建产物
-  const webServerDst = join(runtimeDir, 'web', 'server')
-  rmSync(join(runtimeDir, 'web'), { recursive: true, force: true })
-  mkdirSync(webServerDst, { recursive: true })
-  cpSync(join(webDir, 'server', 'app.py'), join(webServerDst, 'app.py'))
-
-  const distSrc = join(webDir, 'dist')
-  if (!existsSync(distSrc)) {
-    throw new Error('web/dist 不存在，先跑 pnpm build')
-  }
-  cpSync(distSrc, join(runtimeDir, 'web', 'dist'), { recursive: true })
-
-  log(`代码就绪: ${mb(dirSize(join(runtimeDir, 'web')))}`)
+  log('代码就绪: svc/ + inference.py + ensemble.py + utils/')
 }
 
 // ---------------------------------------------------------------- 模型
@@ -175,11 +185,10 @@ function prepareModels() {
   let weights = 0
   let structs = 0
 
-  // models/ 里有三类东西，缺一不可：
+  // models/ 有三类，缺一不可：
   //   *.ckpt 权重（大头）
   //   *.yaml 结构定义
   //   *.py   模型实现（inference.py 会 import models.bs_roformer 等）
-  // 还有 bandit/ scnet_unofficial/ 等子目录里的一堆 .py。
   const copyTree = (src, dst) => {
     for (const entry of readdirSync(src, { withFileTypes: true })) {
       const s = join(src, entry.name)
@@ -215,7 +224,7 @@ function prepareFfmpeg() {
     try {
       src = execFileSync(
         join(repoRoot, '.venv', 'Scripts', 'python.exe'),
-        ['-c', 'import svc_common;print(svc_common.FFMPEG)'],
+        ['-c', 'import sys;sys.path.insert(0,"svc");import svc_common;print(svc_common.FFMPEG)'],
         { cwd: repoRoot, encoding: 'utf8' },
       ).trim()
     } catch {
@@ -234,33 +243,39 @@ function prepareFfmpeg() {
 
 // ---------------------------------------------------------------- 自检
 
-/** 装完立刻跑一遍，别等打包装出来才发现缺东西。 */
+/** 装完立刻验，别等打包装出来才发现缺东西。 */
 function selfCheck() {
   const py = join(runtimeDir, 'python', 'python.exe')
-  log('自检：独立 Python 能否导入 torch')
+  if (!existsSync(py)) {
+    log('跳过自检：没有 python.exe')
+    return
+  }
+
+  log('自检：独立 Python 导入 torch')
   const out = execFileSync(py, ['-c', 'import torch,librosa,soundfile;print(torch.__version__)'], {
     encoding: 'utf8',
-    timeout: 180000,
+    timeout: 180_000,
   })
   log(`  torch ${out.trim()}`)
 
-  log('自检：backend 能否加载')
-  execFileSync(
+  log('自检：svc_common 路径解析')
+  const probe = execFileSync(
     py,
-    ['-c', 'import sys;sys.path.insert(0,".");import svc_common;print(svc_common.MSST)'],
-    {
-      cwd: runtimeDir,
-      encoding: 'utf8',
-      timeout: 60000,
-    },
+    [
+      '-c',
+      'import sys;sys.path.insert(0,"svc");import svc_common as C;' +
+        'print(C.MSST);print(C.INF);print(C.MODELS)',
+    ],
+    { cwd: runtimeDir, encoding: 'utf8', timeout: 60_000 },
   )
+  const [msst, inf, models] = probe.trim().split(/\r?\n/)
+  if (!existsSync(inf)) throw new Error(`自检失败：inference.py 路径不对 ${inf}`)
+  if (!existsSync(models)) throw new Error(`自检失败：models 路径不对 ${models}`)
+  log(`  MSST=${msst}`)
   log('  自检通过')
 }
 
 // ---------------------------------------------------------------- main
-//
-// 每个 prepare* 自己清理自己的子目录。不要在这里整体 rmSync(runtimeDir)：
-// --skip-python 时会先把已就绪的 python/ 删掉再跳过重建，留下半成品。
 
 mkdirSync(runtimeDir, { recursive: true })
 
@@ -268,20 +283,9 @@ try {
   if (!skipPython) preparePython()
   prepareCode()
   if (!skipModels) prepareModels()
-  prepareFfmpeg()
+  if (!skipFfmpeg) prepareFfmpeg()
 
-  writeFileSync(
-    join(runtimeDir, 'BUILD_INFO.txt'),
-    [
-      'vocal-stems desktop runtime',
-      `built: ${new Date().toISOString()}`,
-      `python: ${skipPython ? 'skipped' : 'standalone CPython 3.11'}`,
-      '',
-    ].join('\n'),
-    'utf8',
-  )
-
-  if (!skipPython) selfCheck()
+  if (!skipPython && !skipModels) selfCheck()
 
   log(`全部就绪 → ${runtimeDir}`)
   log(`总大小: ${mb(dirSize(runtimeDir))}`)

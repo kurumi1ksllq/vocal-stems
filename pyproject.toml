@@ -140,6 +140,8 @@ py-modules = [
   "valid",
   "valid_ddp"
 ]
+# 本地的干声三件套放在 svc/ 里，作为独立包一起装
+packages = ["svc"]
 
 [tool.setuptools.packages.find]
 where = ["."]

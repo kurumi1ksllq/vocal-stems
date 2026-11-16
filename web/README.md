@@ -1,143 +1,109 @@
-# 干声分离台 · Web 前端
+# Web 桌面版（React + Electron）
 
-给 [vocal-stems](../README.md) 做的本地 Web 界面。拖入音频 → 选模式 → 跑推理 → 试听/下载。
+干声分离三件套的桌面 UI。**推理全在 Python sidecar**，Electron 只做窗口与业务编排。
 
-不是独立的分离实现——所有推理仍然走仓库根目录的 `svc_stems.py` / `svc_karaoke.py` / `svc_dereverb.py`，
-这个目录只负责把 UI 接到它们上面。
+> 2026-11 重构：从「FastAPI + HTTP + SSE」改为「Node 主进程 + Hono over IPC + SQLite」。
+> 旧的 FastAPI 后端已删除。
 
 ## 快速开始
 
-**一次性安装**（仓库根目录）：
-
 ```bash
-uv pip install --python .venv\Scripts\python.exe fastapi "uvicorn[standard]" python-multipart
-cd web && pnpm install
+cd web
+pnpm install                 # 首次
+
+pnpm dev                     # Vite dev server + Electron 热更新
+pnpm build                   # 只构建（tsc + vite）
+pnpm test                    # vitest（34 个用例）
+pnpm e2e                     # Playwright（需先 pnpm dist:dir）
+pnpm verify                  # biome ci + 三包 typecheck
 ```
 
-**开发模式**（两个进程，前端热更新）：
+打包：
 
 ```bash
-# 终端 1 —— 后端 :8765
-pnpm server
-
-# 终端 2 —— 前端 :5178，/api 自动代理到 8765
-pnpm dev
+pnpm prepare:runtime         # 组装 runtime/（Python + 权重 + ffmpeg，约 6.5 GB）
+pnpm dist:dir                # 生成 release/win-unpacked/干声分离台.exe
+pnpm dist                    # 生成 release/干声分离台-<version>-x64.zip
 ```
 
-打开 <http://127.0.0.1:5178>。
-
-**生产模式**（一个进程，后端顺带托管 `dist/`）：
-
-```bash
-pnpm build
-pnpm server
-```
-
-打开 <http://127.0.0.1:8765>。
-
-## 目录
+## 结构
 
 ```
 web/
-├── biome.json             格式化 + Lint + import 排序（Biome 2）
-├── server/app.py          FastAPI 后端：调 svc_*.py、收日志、暴露产物
-├── scripts/run-server.mjs 用项目 .venv 启动后端，不用记 python 路径
-├── src/
-│   ├── components/        UI 组件（shadcn/ui 风格，源码进仓库）
-│   ├── pages/             三个页面：分离台 / 产物库 / 关于
-│   ├── lib/               API 契约、hooks、工具函数
-│   └── index.css          Tailwind v4 主题（CSS 变量）
-└── dist/                  pnpm build 产物（不入库）
+├── apps/desktop/            主进程 + preload + 渲染进程
+│   ├── src/main/            index.ts（启动）/ job-runner.ts（任务编排）
+│   │                        sidecar.ts（Python 进程）/ db.ts / logger.ts
+│   │                        media-protocol.ts（vs-media://）
+│   ├── src/preload/         IPC 桥（唯一的 Node 边界）
+│   ├── src/renderer/        React 19 + TanStack Query + i18next
+│   └── test/                vitest（sidecar 进程管理）
+├── packages/shared/         Hono 路由 + Drizzle schema + IPC 契约
+│   ├── src/callable/        createApp()：主进程实现，渲染进程只取类型
+│   ├── src/db/              schema + createDb
+│   ├── drizzle/             迁移 SQL（db:generate 产出）
+│   └── test/                路由契约测试
+├── packages/ui/             shadcn 组件 + Ladle 工作台
+├── e2e/                     Playwright
+├── scripts/prepare-runtime.mjs
+└── runtime/                 打包用的 Python 运行时（不入库）
 ```
 
-## 代码规范
-
-格式化、Lint、import 排序统一用 **Biome 2**，不再装 ESLint / Prettier。
-
-```bash
-pnpm check        # 只检查，不改文件（CI 用这个）
-pnpm check:fix    # 检查 + 自动修复（format、import 排序、安全修复）
-pnpm format       # 只格式化
-pnpm lint         # 只跑 Lint
-pnpm typecheck    # 只跑 tsc
-pnpm verify       # check + typecheck，提交前跑一次
-```
-
-`biome.json` 的几个关键设置：
-
-- **缩进 2 空格、行宽 100、LF**，单引号、无分号、trailing comma —— 和现有代码风格一致。
-- **import 排序交给 `assist.source.organizeImports`**（不是 Lint 规则），`check --write` 时自动生效。
-- `server/**` 下的 Python 文件被排除在格式化/Lint 之外，避免误伤。
-- `src/components/ui/**` 放宽了 a11y 和 `any` 规则——这些是从 shadcn 复制的原样代码。
-
-**注意**：`noExplicitAny`、`useExhaustiveDependencies` 是 **warn** 不是 error。前者在 Radix 包装层难免，后者对“用 state 当触发信号”的写法会误报（`log-stream.tsx` 里用 `biome-ignore` 显式说明）。
-
-## 关于 `pnpm-workspace.yaml`
-
-这个文件不是用来做 workspace 的（`packages` 只有 `"."`），它存在是因为 **pnpm v11 把配置从 `package.json` 的 `pnpm` 字段挪到了这里**：
-
-```yaml
-packages:
-  - "."
-
-allowBuilds:
-  esbuild: true
-```
-
-`allowBuilds` 是 v11 的新写法，替代了 `onlyBuiltDependencies` / `neverBuiltDependencies` 等旧键。esbuild 是 vite 的构建依赖，必须允许它跑 postinstall，否则每次 `pnpm <任何命令>` 都会报：
+## 数据流
 
 ```
-[ERR_PNPM_IGNORED_BUILDS] Ignored build scripts: esbuild@0.25.12
+渲染进程
+  │ window.vs.rpc({method, path, body})    ← preload 桥，只有一个出口
+  ▼
+主进程（ipcMain.handle('vs:rpc')）
+  │ 补 /api 前缀 → api.request()           ← Hono 路由，类型来自 shared/callable
+  ▼
+job-runner（SidecarApi 实现）
+  │ Drizzle + node:sqlite                   ← 任务/产物/日志持久化
+  │ spawn Python                            ← svc/svc_*.py
+  ▼
+Python sidecar（纯 CLI，不监听端口）
 ```
 
-**不要删这个文件**，也不要把配置写回 `package.json` 的 `pnpm` 字段——v11 明确不再读它。
+音频播放：产物经 `vs-media://local/<encodeURIComponent(absPath)>` 暴露，支持 Range。
+只允许 `outRoot` 下的路径。
 
-## 页面
+## 纪律（改代码前必读）
 
-| 路由       | 作用                                                      |
-| ---------- | --------------------------------------------------------- |
-| `/`        | 分离台：拖拽 → 选模式 → 高级参数 → 发起 → 实时日志 → 试听 |
-| `/library` | 产物库：直接扫 `分离输出/`，重启后端也在                  |
-| `/about`   | 流水线与设计说明                                          |
+1. **渲染进程不碰 Node**。只有 `window.vs`，没有 `fs`/`path`/`ipcRenderer`。
+2. **数据库只在主进程**。`node:sqlite` 的 `DatabaseSync` 不可跨进程传递。
+3. **Hono 路由类型放 `shared/callable`**。主进程实现，渲染进程只 `import type`。
+4. **preload 不 import electron-log**。渲染错误经 `reportError` → IPC → 主进程写日志 + 落库。
+5. **i18n 从第一天起**。`src/renderer/i18n.ts`，资源随包，`useSuspense: false`。
+6. **Biome 精确锁版本**（2.6.8）。CI 用 `biome ci`。
+7. **Drizzle Kit 锁 `1.0.0-beta.24`**（spec 要求 ≥ beta.18）。
 
-## 后端接口
+## 启动链路
 
-| 方法 | 路径                    | 说明                                             |
-| ---- | ----------------------- | ------------------------------------------------ |
-| GET  | `/api/health`           | 环境体检：CUDA / 权重 / ffmpeg                   |
-| POST | `/api/jobs`             | 上传音频 + 参数，异步起任务                      |
-| GET  | `/api/jobs`             | 任务列表                                         |
-| GET  | `/api/jobs/{id}/stream` | **SSE** 实时日志                                 |
-| GET  | `/api/jobs/{id}/result` | 扫描产物目录，返回可播放的轨                     |
-| POST | `/api/jobs/{id}/cancel` | 终止子进程                                       |
-| GET  | `/api/library`          | 历史产物目录                                     |
-| GET  | `/api/file?path=`       | 受控音频文件（只允许 `分离输出/` 与 `uploads/`） |
-| POST | `/api/reveal`           | 在资源管理器打开产物目录                         |
+```
+app.whenReady()
+  ├─ 1. registerMediaScheme()        必须在 ready 前，见 index.ts 顶部
+  ├─ 2. openDb(userData, migrations) 迁移从 resources/drizzle 或 web/packages/shared/drizzle
+  ├─ 3. createJobRunner(...)         注入 db / 路径 / Python
+  ├─ 4. createApp({db, sidecar})     Hono
+  ├─ 5. ipcMain.handle('vs:rpc')     唯一的业务 IPC 入口
+  ├─ 6. handleMediaProtocol(outRoot)
+  └─ 7. createWindow()               hash router，加载 dist/index.html
+```
 
-## 几个实现上的坑
+## 打包踩过的坑
 
-**1. 后端不能放在 `web/server/` 里算仓库根。**
-`app.py` 早期版本用 `Path(__file__).parent.parent` 当仓库根，结果指向 `web/`，
-导致 `venvReady=false`、`weights=[]`、输出写进 `web/分离输出/`。现在分三级：
-`SERVER_DIR → WEB_DIR → ROOT`。
-
-**2. 产物目录要按 job_id 认领。**
-`svc_*.py` 用 `<时间戳>_<输入文件名>_<标签>` 命名，上传文件叫 `<job_id>.wav`，
-所以目录名里一定带 job_id。早期按「开始时间之后最新的目录」找，并发时会串到别人的目录。
-
-**3. `svc_*.py` 单文件失败仍返回退出码 0。**
-它只打印 `[失败]` 然后继续下一个文件。后端在退出码为 0 时还要扫日志里有没有 `[失败]`，
-否则会把失败的任务标成「已完成」。
-
-**4. 仓库根 `.gitignore` 有 Python 打包用的 `lib/` 和 `Scripts/` 规则。**
-会误伤前端的 `src/lib/` 和 `scripts/`。`web/.gitignore` 末尾用 `!src/lib/**` 收回。
-
-**5. Tailwind v4 用 CSS 变量，没有 `tailwind.config.ts`。**
-主题全在 `src/index.css` 的 `@theme inline` 里。别去找 config 文件。
+| 现象                                        | 原因                                                       | 修法                            |
+| ------------------------------------------- | ---------------------------------------------------------- | ------------------------------- |
+| `require is not defined in ES module scope` | 主进程产物是 `.js` 而 `package.json` 有 `"type": "module"` | 产物必须叫 `index.cjs`          |
+| 主进程打出来仍是 ESM                        | Vite 8 换 rolldown，`rollupOptions.output.format` 不生效   | 用 `build.lib.formats: ['cjs']` |
+| `Hono` 路由全 404                           | `new URL(path, 'vs-app://local')` 解析不出 pathname        | origin 用 `http://localhost`    |
+| `no such table: jobs`                       | 迁移路径少算一层（`__dirname` 是 `dist-electron/main`）    | 四层上溯到 `web/`               |
+| userData 变成 `AppData/Roaming/@vs/desktop` | Electron 用 package name 推导                              | `app.setName('vocal-stems')`    |
+| `useToast 必须在 ToasterProvider 内`        | `main.tsx` 漏挂 Provider                                   | 补上                            |
 
 ## 已知限制
 
-- 任务表只在内存里，后端重启后「本会话任务」清空（产物还在 `分离输出/`，产物库能看到）。
-- 同一时刻只能有一个文件在播：`StemPlayer` 受控于父组件的 `playingUrl`。
-- 波形解码用 `AudioContext.decodeAudioData`，超大文件（>100MB wav）解码会明显卡一下。
-- 上传文件留在 `web/uploads/`，不自动清理。
+- 无代码签名，Windows 会弹 SmartScreen
+- 默认 Electron 图标
+- 没接 electron-updater
+- i18n 没有 lint 门禁（spec 要求的 `eslint-plugin-i18next` 是 ESLint 生态，本项目用 Biome）
