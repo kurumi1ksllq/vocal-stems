@@ -33,6 +33,13 @@ export function EnvPanel({ health, weights, error, loading, onRefresh }: EnvPane
   const missing = REQUIRED.filter((r) => !present.has(r.name))
   const totalWeight = weights.reduce((s, w) => s + w.size, 0)
 
+  /**
+   * 首次探测还没回来。probe() 要 spawn 一个 Python 去 import torch，
+   * 冷启动要好几秒——这期间 health 是 null、weights 是空数组。
+   * 不能把这当成「没装权重 / 没有 ffmpeg」，否则一开窗就是一片红。
+   */
+  const pending = loading && !health
+
   const label = (
     <div className="group-label mb-2 flex items-baseline gap-2 px-4">
       <span>环境</span>
@@ -78,22 +85,26 @@ export function EnvPanel({ health, weights, error, loading, onRefresh }: EnvPane
       <div className="glass border-white/10 overflow-hidden rounded-[18px] border">
         <Row
           label="显卡"
-          value={shortDevice(health?.cuda.available ? health.cuda.device : null, loading)}
-          bad={!health?.cuda.available}
+          value={
+            pending
+              ? '检测中…'
+              : shortDevice(health?.cuda.available ? health.cuda.device : null, false)
+          }
+          bad={!pending && !health?.cuda.available}
           first
         />
         <Row
           label="权重"
-          value={`${weights.length} 个 · ${formatBytes(totalWeight)}`}
-          bad={missing.length > 0}
+          value={pending ? '检测中…' : `${weights.length} 个 · ${formatBytes(totalWeight)}`}
+          bad={!pending && missing.length > 0}
         />
         <Row
           label="ffmpeg"
-          value={health?.ffmpeg.exists ? '就绪' : '缺失'}
-          bad={!health?.ffmpeg.exists}
+          value={pending ? '检测中…' : health?.ffmpeg.exists ? '就绪' : '缺失'}
+          bad={!pending && !health?.ffmpeg.exists}
         />
 
-        {missing.length > 0 && (
+        {!pending && missing.length > 0 && (
           <div className="px-4 py-3">
             <p className="text-signal text-caption">{missing.length} 个权重缺失，对应功能会失败</p>
             <ul className="mt-1.5 space-y-0.5">

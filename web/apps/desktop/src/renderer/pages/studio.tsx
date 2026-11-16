@@ -69,7 +69,11 @@ export function StudioPage() {
 
       <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
         <div className="space-y-5">
-          <NewJobPanel onCreated={onCreated} healthOk={health.health?.ok ?? false} />
+          <NewJobPanel
+            onCreated={onCreated}
+            healthOk={health.health?.ok ?? false}
+            probing={health.loading && !health.health}
+          />
           <EnvPanel
             health={health.health}
             weights={health.weights}
@@ -104,6 +108,7 @@ export function StudioPage() {
               error={library.error}
               onRefresh={() => void library.refresh()}
               healthOk={health.health?.ok ?? false}
+              probing={health.loading && !health.health}
             />
           )}
 
@@ -150,12 +155,14 @@ function RecentOutputs({
   error,
   onRefresh,
   healthOk,
+  probing,
 }: {
   entries: { name: string; dir: string; mtime: number; count: number; size: number }[]
   loading: boolean
   error: string | null
   onRefresh: () => void
   healthOk: boolean
+  probing: boolean
 }) {
   return (
     <section>
@@ -177,9 +184,11 @@ function RecentOutputs({
         {entries.length === 0 && !loading && (
           <div className="space-y-2 px-5 py-6">
             <p className="text-foreground/85 text-footnote leading-relaxed">
-              {healthOk
-                ? '还没有产物。左边放下音频、选一步就能开始。'
-                : '环境还没就绪，先看左下方的环境检测。'}
+              {probing
+                ? '正在检测本机环境，几秒就好。'
+                : healthOk
+                  ? '还没有产物。左边放下音频、选一步就能开始。'
+                  : '环境还没就绪，先看左下方的环境检测。'}
             </p>
             <p className="text-muted-foreground text-caption leading-relaxed">
               第一次跑要加载模型，会多等十几秒。去伴奏出人声和伴奏，去和声出主唱和和声，去混响出干声和混响成分。

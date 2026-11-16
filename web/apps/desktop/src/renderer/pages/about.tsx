@@ -56,7 +56,7 @@ export function AboutPage() {
           <span className="font-display text-title3 font-semibold tracking-tight">干</span>
         </span>
         <h1 className="text-title3">干声分离台</h1>
-        <p className="text-muted-foreground text-caption">vocal-stems 0.2.0 · 本机 GPU</p>
+        <p className="text-muted-foreground text-caption">vocal-stems 0.3.0 · 本机 GPU</p>
       </div>
 
       <div className="space-y-6">

@@ -43,9 +43,12 @@ function readLast(): LastRun | null {
 export function NewJobPanel({
   onCreated,
   healthOk,
+  probing,
 }: {
   onCreated: (job: Job) => void
   healthOk: boolean
+  /** 环境首次探测还没回来。/health 要 spawn Python 跑 torch，冷启动要几秒 */
+  probing: boolean
 }) {
   const [file, setFile] = useState<File | null>(null)
   const [mode, setMode] = useState<ModeKey>('stems')
@@ -135,11 +138,13 @@ export function NewJobPanel({
             {busy ? '正在提交…' : `开始${MODE_META[mode].label}`}
           </Button>
           <p className="text-muted-foreground/70 px-1 text-caption2">
-            {healthOk
-              ? source === 'mix' && mode !== 'stems'
-                ? '会先自动跑前置步骤，耗时叠加'
-                : `产出 ${MODE_META[mode].outputs}`
-              : '环境未就绪，先看下面的环境检测'}
+            {probing
+              ? '正在检测本机环境…'
+              : healthOk
+                ? source === 'mix' && mode !== 'stems'
+                  ? '会先自动跑前置步骤，耗时叠加'
+                  : `产出 ${MODE_META[mode].outputs}`
+                : '环境未就绪，先看下面的环境检测'}
           </p>
         </div>
       </div>
