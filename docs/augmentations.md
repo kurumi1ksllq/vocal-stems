@@ -1,3 +1,4 @@
+<!-- SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0 -->
 ### Augmentations 
 
 Augmentations allows to change stems on the fly increasing the size of dataset by creating new samples from old samples. 

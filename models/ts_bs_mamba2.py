@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
 # https://github.com/Human9000/nd-Mamba2-torch
 
 from __future__ import print_function

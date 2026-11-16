@@ -2,28 +2,32 @@ PolyForm Strict License 1.0.0
 
 Copyright (c) 2026 kurumi1ksllq
 
-本仓库采用双许可 (dual licensing):
+本仓库整体采用 PolyForm Strict 1.0.0 单一许可 (single licensing)。
+覆盖范围为仓库内全部文件与目录, 包括但不限于:
 
-  * 本文件 (PolyForm Strict 1.0.0) 覆盖以下由 kurumi1ksllq 原创的文件:
-        svc_stems.py
-        svc_karaoke.py
-        svc_dereverb.py
-        svc_common.py
-        svc_去伴奏_拖拽.bat
-        svc_去和声_拖拽.bat
-        svc_去混响_拖拽.bat
-        分离干声_拖拽.bat
-        models/config_mel_band_roformer_karaoke_gabox_vocals.yaml
-        本 README 中「本地改造说明」章节
+    svc/                        三条干声分离脚本 (SPDX: LicenseRef-PolyForm-Strict-1.0.0)
+    拖拽启动/                    4 个拖拽启动 bat
+    web/                        干声分离台桌面版 (React + Electron monorepo, 含全部源码/测试/脚本)
+    models/  configs/  utils/  gui/  docs/  scripts/  tests/
+    train*.py  valid*.py  inference.py  ensemble.py
+    README.md  AGENTS.md  LICENSE  THIRD-PARTY-NOTICES.md  及全部文档
 
-  * 其余文件 (configs/、models/*.py、utils/、gui/、docs/、scripts/、tests/、
-    train*.py、valid*.py、inference.py、ensemble.py 等) 派生自
-    ZFTurbo/Music-Source-Separation-Training (MIT License),
-    继续受 LICENSES/MIT.txt 约束, 不受本文件影响。
+许可含义 (详见下方官方正文「Noncommercial Purposes」「Personal Uses」两节):
 
-  MIT 授权不可撤销: 任何人在本仓库公开 MIT 内容之时起,
-  即已永久取得对这些内容的使用/修改/分发权利。
-  本文件仅对上述原创文件生效, 不构成对既有 MIT 授权的撤回。
+    允许  阅读源码、个人研究、实验、测试、个人学习、私人娱乐、业余项目、
+          非商业组织与教育/科研机构内部使用
+    禁止  分发本软件、修改本软件、基于本软件创作新作品、任何商业用途
+
+仓库内每一个文件均以本许可提供; 不存在按目录/按文件拆分的第二种许可。
+所有本地原创文件与本地改造部分保留 SPDX 头:
+
+    # SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+
+关于派生自上游的文件: 其中一部分原始代码曾由原作者以 MIT 授权公开发布
+(ZFTurbo/Music-Source-Separation-Training, 见文末「第三方归属」)。
+MIT 授权对上游原始代码本身不可撤销, 上游原作者对该部分代码的既有授权
+不受本文件影响。本仓库的本版本整体、以及全部本地改造与新增部分,
+则仅以 PolyForm Strict 1.0.0 提供。
 
 === 以下为 PolyForm Strict 1.0.0 官方正文 ===
 # PolyForm Strict License 1.0.0

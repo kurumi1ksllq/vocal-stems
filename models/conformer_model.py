@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

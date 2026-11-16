@@ -1,3 +1,4 @@
+-- SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
 CREATE TABLE `job_logs` (
 	`id` integer PRIMARY KEY AUTOINCREMENT,
 	`job_id` text NOT NULL,

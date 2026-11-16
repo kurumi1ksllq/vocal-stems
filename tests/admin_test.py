@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
 from test import test_settings
 from scripts.redact_config import redact_config
 from utils.settings import load_config

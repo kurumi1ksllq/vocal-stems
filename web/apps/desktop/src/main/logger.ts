@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
 /**
  * electron-log 只允许在主进程 import（spec 纪律）。
  *

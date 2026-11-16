@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
 /**
  * Playwright E2E：启动打包后的 Electron，验证完整回路。
  *

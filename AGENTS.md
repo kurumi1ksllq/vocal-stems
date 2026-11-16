@@ -4,14 +4,14 @@
 
 ## 1. 这是什么
 
-ZFTurbo/MSST(Music-Source-Separation-Training)的本地改造版：训练/推理框架保持上游 MIT 代码，本地新增了**三条干声分离脚本**（SVC 三件套）和**融合算法修正**，并针对 RTX 3070 8GB 做过裁剪。
+ZFTurbo/MSST(Music-Source-Separation-Training)的本地改造版：训练/推理框架源自上游代码，本地新增了**三条干声分离脚本**（SVC 三件套）和**融合算法修正**，并针对 RTX 3070 8GB 做过裁剪。全仓库统一 PolyForm Strict 1.0.0。
 
 两条完全独立的链路，别混：
 
 | 链路 | 入口 | 用途 | 是否本地原创 |
 |---|---|---|---|
 | 干声分离（实际在用） | `svc/svc_stems.py` / `svc/svc_karaoke.py` / `svc/svc_dereverb.py` + `svc/svc_common.py` | 拖拽或命令行出人声/伴奏/主唱/和声/去混响 | 是，PolyForm Strict |
-| 上游训练框架 | `train.py` / `train_ddp.py` / `train_accelerate.py` / `valid.py` / `inference.py` / `ensemble.py` | 训练、验证、单模型推理、融合 | 否，MIT，只在两处有本地补丁 |
+| 上游训练框架 | `train.py` / `train_ddp.py` / `train_accelerate.py` / `valid.py` / `inference.py` / `ensemble.py` | 训练、验证、单模型推理、融合 | 否，上游派生，只在两处有本地补丁 |
 
 `inference.py` / `ensemble.py` 是上游文件，但被本地**改过**（见 §5）。改它们前先确认改的是本地补丁还是上游逻辑。
 
@@ -224,7 +224,7 @@ E2E 需要先 `pnpm build && pnpm dist:dir`，它跑的是 `release/win-unpacked
 - `.gitattributes`：文本 LF；**`*.bat` 必须 CRLF**；`* -text` 兜底不转换。
 - `.gitignore` 忽略：所有 `*.ckpt`、`分离输出/`、`test_input/`、`test_output/`、`_probe_*`、`results/`、`wandb/`、`*.log`。
 - `分离输出/` 里的 `20261115_i will survive_成品交付/` 是**人工整理的交付目录**（`00_原始`/`01_人声总轨`/`02_纯主唱`/`02_和声`/`03_去混响`/`03_混响成分`），不完全是脚本直出的文件名，别拿它当输出格式规范。
-- 权限：仓库**双许可**。`svc_*.py`、四个 bat、gabox karaoke 配置、README 的改造章节是 PolyForm Strict（禁止分发/修改/商用之外的用途，见 `LICENSE`）；其余上游派生文件是 MIT（`LICENSES/MIT.txt`）。新增文件要明确归到哪一边，并保留 `# SPDX-License-Identifier` 头。改 `svc_*` 前留意：PolyForm Strict 本身禁止修改，除非是版权持有人本人。
+- 权限：仓库**整体单一许可 PolyForm Strict 1.0.0**（禁止分发/修改/商用之外的用途，见 `LICENSE`）。目录/文件不做二次拆分，`web/` 也算在内。新增文件一律带 `# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0` 头。`THIRD-PARTY-NOTICES.md` 只是上游 ZFTurbo 的第三方归属声明，不是本仓库的许可选项。改代码前留意：PolyForm Strict 本身禁止修改，除非是版权持有人本人。
 
 ## 9. 常见坑速查
 

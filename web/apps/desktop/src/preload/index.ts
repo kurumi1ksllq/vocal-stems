@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
 /**
  * Preload —— 渲染进程唯一的 Node 边界。
  *

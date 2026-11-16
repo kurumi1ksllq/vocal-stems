@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
 import type { Story, StoryDefault } from '@ladle/react'
 import { Badge } from './badge.tsx'
 import { Button } from './button.tsx'

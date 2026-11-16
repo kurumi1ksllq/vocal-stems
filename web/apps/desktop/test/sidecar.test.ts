@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
 /**
  * Electron 主进程的 vitest 测试：sidecar 进程管理与路径校验。
  *

@@ -230,29 +230,35 @@ cd web && pnpm dist    # -> release/干声分离台-<version>-x64.zip
 
 ## 许可证 (License)
 
-本仓库采用**双许可**:
+本仓库**整体采用 PolyForm Strict 1.0.0 单一许可**,覆盖全部文件与目录 —— 包括
+`svc/`、`拖拽启动/`、`web/`(桌面版全部源码)、`configs/`、`models/`、`utils/`、`gui/`、
+`docs/`、`scripts/`、`tests/`、`train*.py`、`valid*.py`、`inference.py`、`ensemble.py`
+以及全部文档。见 [`LICENSE`](LICENSE)。不存在按目录拆分的第二种许可。
 
-| 范围 | 协议 |
-|---|---|
-| `svc/` 下 4 个脚本(`svc_stems` / `svc_karaoke` / `svc_dereverb` / `svc_common`)<br/>`拖拽启动/` 下 4 个 bat / 新增的 gabox karaoke config<br/>本 README 的「本地改造说明」章节 | **PolyForm Strict 1.0.0** (见 `LICENSE`) |
-| `configs/` `models/*.py` `utils/` `gui/` `docs/` `scripts/` `tests/`<br/>`train*.py` `valid*.py` `inference.py` `ensemble.py` | **MIT** (见 `LICENSES/MIT.txt`) |
+所有文件保留 SPDX 头:
+
+```
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
+```
 
 ### PolyForm Strict 1.0.0 意味着什么
 
-允许:**阅读源码、个人研究、实验、测试、个人学习、私人娱乐、业余项目、宗教活动**。
+允许:**阅读源码、个人研究、实验、测试、个人学习、私人娱乐、业余项目**,
+以及非商业组织 / 教育科研机构内部使用。
 
 禁止:**分发本软件、修改本软件、基于本软件创作新作品、任何商业用途**。
 
 也就是说 —— 你可以看、可以自己跑着玩,但不能拿去改、不能二次分发、不能商用。
 
-### 为什么是双许可
+### 上游 MIT 代码的地位
 
-`inference.py`、`ensemble.py` 以及 `configs/`、`models/`、`utils/` 等 169 个文件派生自
-[ZFTurbo/Music-Source-Separation-Training](https://github.com/ZFTurbo/Music-Source-Separation-Training)
-(MIT）。MIT 授权**不可撤销**——任何人拿到这些内容时就已经永久取得了使用/修改/分发的权利,
-不存在把它们改成更严格协议的可能。所以这部分只能继续按 MIT 提供。
+`configs/`、`models/`、`utils/` 等部分文件派生自
+[ZFTurbo/Music-Source-Separation-Training](https://github.com/ZFTurbo/Music-Source-Separation-Training) (MIT)。
+MIT 授权对**上游原作者发布的原始代码本身**不可撤销,该部分的历史授权见
+[`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md) —— 它是第三方归属声明,不是本仓库的许可选项。
 
-PolyForm Strict 只覆盖由本项目作者原创的 9 个文件。
+本仓库作为一个整体、以及全部本地改造与新增部分(三件套、融合算法修正、`web/` 桌面版等),
+仅以 PolyForm Strict 1.0.0 提供。
 
 ### 上游致谢
 

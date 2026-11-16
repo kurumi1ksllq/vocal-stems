@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
 import { api, type ResultDir } from '@renderer/lib/api'
 import { useCallback, useEffect, useRef, useState } from 'react'
 

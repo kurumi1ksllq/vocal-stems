@@ -1,4 +1,5 @@
 # coding: utf-8
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
 __author__ = 'Roman Solovyev (ZFTurbo): https://github.com/ZFTurbo/'
 __version__ = '1.0.5'
 

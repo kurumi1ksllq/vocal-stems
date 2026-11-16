@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
 import os.path
 from collections import defaultdict
 from itertools import chain, combinations

@@ -1,3 +1,4 @@
+<!-- SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0 -->
 ### Ensemble usage
 
 Repository contains `ensemble.py` script which can be used to ensemble results of different algorithms.

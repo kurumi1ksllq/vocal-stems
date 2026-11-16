@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
 '''
 SCNet - great paper, great implementation
 https://arxiv.org/pdf/2401.13276.pdf

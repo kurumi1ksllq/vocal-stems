@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
 from dataclasses import dataclass
 
 from torchaudio._internal import load_state_dict_from_url

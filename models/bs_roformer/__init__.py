@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
 from models.bs_roformer.bs_roformer import BSRoformer
 from models.bs_roformer.bs_conformer import BSConformer
 from models.bs_roformer.mel_band_roformer import MelBandRoformer

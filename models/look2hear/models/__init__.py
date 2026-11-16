@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
 ###
 # Author: Kai Li
 # Date: 2022-02-12 15:16:35

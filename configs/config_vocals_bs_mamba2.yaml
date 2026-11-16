@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0
 audio:
   chunk_size: 132300  # samplerate * segment
   hop_length: 1024

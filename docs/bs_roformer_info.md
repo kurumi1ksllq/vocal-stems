@@ -1,3 +1,4 @@
+<!-- SPDX-License-Identifier: LicenseRef-PolyForm-Strict-1.0.0 -->
 ### Batch sizes for BSRoformer 
 
 You can use table below to choose BS Roformer `batch_size` parameter for training based on your GPUs. Batch size values provided for single GPU. If you have several GPUs you need to multiply value on number of GPUs. 
