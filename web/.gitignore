@@ -1,0 +1,23 @@
+node_modules/
+dist/
+build/
+release/
+story-static/
+*.tsbuildinfo
+*.local
+.vite/
+.DS_Store
+
+# 运行时数据：数据库、日志、上传、Python 运行时副本
+data/
+uploads/
+logs/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# 打包用的 Python 运行时（pnpm dist 时生成）
+runtime/
+# 构建产物：主进程/preload 的 CJS bundle
+dist-electron/

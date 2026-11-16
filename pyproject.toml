@@ -16,7 +16,7 @@ dependencies = [
   "librosa",
   "matplotlib",
   "ml-collections",
-  "numpy>=2.0.0",
+  "numpy>=1.24",
   "omegaconf",
   "pandas",
   "requests",
@@ -140,6 +140,8 @@ py-modules = [
   "valid",
   "valid_ddp"
 ]
+# 本地的干声三件套放在 svc/ 里，作为独立包一起装
+packages = ["svc"]
 
 [tool.setuptools.packages.find]
 where = ["."]

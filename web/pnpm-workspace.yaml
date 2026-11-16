@@ -1,0 +1,30 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+# pnpm v11 配置落点：v11 起不再读 package.json 的 pnpm 字段
+allowBuilds:
+  esbuild: true
+  electron: true
+  electron-winstaller: true
+  lefthook: true
+  # Electron 的平台二进制包本身带 postinstall
+  "@biomejs/biome": true
+  # Ladle 的编译依赖，需要装平台 swc 二进制
+  "@swc/core": true
+  # MSW 的 service worker 需要 postinstall 生成
+  msw: true
+
+minimumReleaseAgeExclude:
+  - "@biomejs/biome@2.6.8"
+  - "@biomejs/cli-android-arm64@2.6.8"
+  - "@biomejs/cli-android-x64@2.6.8"
+  - "@biomejs/cli-darwin-arm64@2.6.8"
+  - "@biomejs/cli-darwin-x64@2.6.8"
+  - "@biomejs/cli-linux-arm64-musl@2.6.8"
+  - "@biomejs/cli-linux-arm64@2.6.8"
+  - "@biomejs/cli-linux-x64-musl@2.6.8"
+  - "@biomejs/cli-linux-x64@2.6.8"
+  - "@biomejs/cli-win32-arm64@2.6.8"
+  - "@biomejs/cli-win32-x64@2.6.8"
+  - i18next@27.1.2

@@ -1,0 +1,28 @@
+# Lefthook —— 只针对 web/ 下的前端代码
+#
+# 提交前只跑 staged 文件的 biome 修复 + 类型检查（快，几秒）。
+# 全量检查（biome ci + 三包 typecheck + vitest）留给 push 前和 CI。
+
+pre-commit:
+  parallel: false
+  jobs:
+    - name: biome
+      root: "web/"
+      glob: "*.{ts,tsx,js,jsx,mjs,cjs,json,jsonc,css}"
+      run: pnpm exec biome check --write --staged --no-errors-on-unmatched
+
+    - name: typecheck
+      root: "web/"
+      glob: "*.{ts,tsx}"
+      run: pnpm typecheck
+
+pre-push:
+  parallel: false
+  jobs:
+    - name: verify
+      root: "web/"
+      run: pnpm verify
+
+    - name: unit tests
+      root: "web/"
+      run: pnpm test

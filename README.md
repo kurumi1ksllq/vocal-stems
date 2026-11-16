@@ -87,14 +87,21 @@ Convert models to ONNX and TensorRT formats [here](https://github.com/ZFTurbo/MS
 
 * `configs/config_*.yaml` - configuration files for models
 * `models/*` - set of available models for training and inference
-* `dataset.py` - dataset which creates new samples for training
-* `gui-wx.py` - GUI interface for code
+* `utils/dataset.py` - dataset which creates new samples for training
+* `gui/gui-wx.py` - GUI interface for code（需自行安装 wxPython）
 * `inference.py` - process folder with music files and separate them
 * `train.py` - main training code for single GPU
 * `train_ddp.py` - training code for Multi GPU config. Faster than `train.py`. Use it for 2 or more GPUs.
-* `utils.py` - common functions used by train/valid
+* `utils/` - common functions used by train/valid
 * `valid.py` - validation of model with metrics
 * `ensemble.py` - useful script to ensemble results of different models to make results better (see [docs](docs/ensemble.md)).   
+
+### 本地新增的目录
+
+* `svc/` - 干声三件套（去伴奏 / 去和声 / 去混响）+ 共用层
+* `拖拽启动/` - 四个 Windows 拖拽批处理入口
+* `web/` - React 前端 + FastAPI 后端 + Electron 桌面壳
+* `分离输出/` - 运行产物（不入库）
 
 ## Pre-trained models
 
@@ -135,28 +142,57 @@ Look here: [GUI documentation](docs/gui.md) or see tutorial on [Youtube](https:/
 
 ### 三条分离脚本 (SVC 三件套)
 
-拆自旧的 `karaoke_pipeline.py`,现在各自独立、可单独跑:
+拆自旧的 `karaoke_pipeline.py`,现在各自独立、可单独跑。都在 [`svc/`](svc/) 目录:
 
 | 脚本 | 作用 | 模型 |
 |---|---|---|
-| `svc_stems.py` | 去伴奏:出「人声(含和声)」+「伴奏」 | KJ + gabox_vocals (mel_band_roformer) |
-| `svc_karaoke.py` | 去和声:出「纯主唱」+「和声」 | anvuew (BS) + gabox (MelBand) |
-| `svc_dereverb.py` | 去混响:出「干声」+「混响成分」 | anvuew dereverb (BS) |
+| [`svc/svc_stems.py`](svc/svc_stems.py) | 去伴奏:出「人声(含和声)」+「伴奏」 | KJ + gabox_vocals (mel_band_roformer) |
+| [`svc/svc_karaoke.py`](svc/svc_karaoke.py) | 去和声:出「纯主唱」+「和声」 | anvuew (BS) + gabox (MelBand) |
+| [`svc/svc_dereverb.py`](svc/svc_dereverb.py) | 去混响:出「干声」+「混响成分」 | anvuew dereverb (BS) |
 
-共用层 `svc_common.py`(ffmpeg 响度规范化、并行推理、融合、mp3 导出)。
-拖拽入口:`svc_去伴奏_拖拽.bat` / `svc_去和声_拖拽.bat` / `svc_去混响_拖拽.bat`。
+共用层 [`svc/svc_common.py`](svc/svc_common.py)(ffmpeg 响度规范化、并行推理、融合、mp3 导出)。
+拖拽入口在 [`拖拽启动/`](拖拽启动/):`svc_去伴奏` / `svc_去和声` / `svc_去混响`,
+外加一个 `分离干声_单模型_拖拽.bat`(只跑 KJ,不融合,快但质量略低)。
 
 ```bash
-# 单独跑
-python svc_stems.py    整曲.wav
-python svc_karaoke.py  人声.wav
-python svc_dereverb.py 纯主唱.wav
+# 单独跑（在仓库根目录执行）
+.venv\Scripts\python.exe svc\svc_stems.py     整曲.wav
+.venv\Scripts\python.exe svc\svc_karaoke.py   人声.wav
+.venv\Scripts\python.exe svc\svc_dereverb.py  纯主唱.wav
 
 # 级联(给整曲,自动串联)
-python svc_karaoke.py  整曲.wav  --from-mix       # 去伴奏 -> 去和声
-python svc_dereverb.py 整曲.wav  --from-vocals    # 去伴奏 -> 去混响
-python svc_dereverb.py 整曲.wav  --from-karaoke   # 去伴奏 -> 去和声 -> 去混响
+.venv\Scripts\python.exe svc\svc_karaoke.py   整曲.wav  --from-mix       # 去伴奏 -> 去和声
+.venv\Scripts\python.exe svc\svc_dereverb.py  整曲.wav  --from-vocals    # 去伴奏 -> 去混响
+.venv\Scripts\python.exe svc\svc_dereverb.py  整曲.wav  --from-karaoke   # 去伴奏 -> 去和声 -> 去混响
 ```
+
+脚本内部自己按 `__file__` 反推仓库根,所以从 `svc/` 里直接跑也可以。
+
+### Web 前端 (干声分离台)
+
+[`web/`](web/) 是给三件套做的 React 界面:拖入音频、选模式、实时看日志、直接试听对比产物。
+推理仍走上面三个脚本,前端只是个壳。
+
+```bash
+# 首次
+uv pip install --python .venv\Scripts\python.exe fastapi "uvicorn[standard]" python-multipart
+cd web && pnpm install && pnpm build && pnpm server
+
+# 日常(开发模式,前端热更新)
+cd web && pnpm server      # 终端 1: 后端 :8765
+cd web && pnpm dev         # 终端 2: 前端 :5178
+```
+
+生产模式下后端顺带托管 `dist/`,访问 <http://127.0.0.1:8765> 即可。
+细节见 [`web/README.md`](web/README.md)。
+
+也可以打包成桌面应用(双击即用,内置 Python 运行时与权重):
+
+```bash
+cd web && pnpm dist    # -> release/干声分离台-<version>-x64.zip
+```
+
+详见 [`web/ELECTRON.md`](web/ELECTRON.md)。
 
 ### 融合算法
 
@@ -188,7 +224,7 @@ python svc_dereverb.py 整曲.wav  --from-karaoke   # 去伴奏 -> 去和声 -> 
 - [KimberleyJSN/melbandroformer](https://huggingface.co/KimberleyJSN/melbandroformer)
 - [anvuew](https://huggingface.co/anvuew) 系列
 
-本机当前用到的 5 个权重(全部 `_fp16.ckpt` 后缀)见 `svc_stems.py` / `svc_karaoke.py` / `svc_dereverb.py` 的 STEPS 定义。
+本机当前用到的 5 个权重(全部 `_fp16.ckpt` 后缀)见 `svc/svc_stems.py` / `svc/svc_karaoke.py` / `svc/svc_dereverb.py` 的 STEPS 定义。
 
 ---
 
@@ -198,7 +234,7 @@ python svc_dereverb.py 整曲.wav  --from-karaoke   # 去伴奏 -> 去和声 -> 
 
 | 范围 | 协议 |
 |---|---|
-| `svc_stems.py` / `svc_karaoke.py` / `svc_dereverb.py` / `svc_common.py`<br/>四个 `svc_*` 拖拽 bat / 新增的 gabox karaoke config<br/>本 README 的「本地改造说明」章节 | **PolyForm Strict 1.0.0** (见 `LICENSE`) |
+| `svc/` 下 4 个脚本(`svc_stems` / `svc_karaoke` / `svc_dereverb` / `svc_common`)<br/>`拖拽启动/` 下 4 个 bat / 新增的 gabox karaoke config<br/>本 README 的「本地改造说明」章节 | **PolyForm Strict 1.0.0** (见 `LICENSE`) |
 | `configs/` `models/*.py` `utils/` `gui/` `docs/` `scripts/` `tests/`<br/>`train*.py` `valid*.py` `inference.py` `ensemble.py` | **MIT** (见 `LICENSES/MIT.txt`) |
 
 ### PolyForm Strict 1.0.0 意味着什么

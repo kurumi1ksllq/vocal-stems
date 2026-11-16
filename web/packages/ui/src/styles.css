@@ -1,0 +1,2 @@
+/* packages/ui 的样式入口。只放组件层的东西，主题变量由 app 提供。 */
+@import "tw-animate-css";
